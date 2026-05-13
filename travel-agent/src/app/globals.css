@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+/* Monochrome palette inspired by the SkyAgent mockups: pure black for
+ * primary actions, near-whites for surfaces, neutral greys in between.
+ * Red stays in the system but only for error states. */
+:root {
+  --mono-0: #ffffff;
+  --mono-50: #fafafa;
+  --mono-100: #f4f4f5;
+  --mono-200: #e4e4e7;
+  --mono-300: #d4d4d8;
+  --mono-400: #a1a1aa;
+  --mono-500: #71717a;
+  --mono-600: #52525b;
+  --mono-700: #3f3f46;
+  --mono-800: #27272a;
+  --mono-900: #18181b;
+  --mono-950: #0a0a0a;
+
+  --accent: var(--mono-950);
+  --accent-hover: var(--mono-800);
+  --success: var(--mono-950);
+  --warning: var(--mono-700);
+  --error: #dc2626;
+}
+
+/* The `sky-*` namespace was the original accent in this codebase. Map it onto
+ * the monochrome scale so existing utility classes (`bg-sky-500`, `text-sky-700`
+ * …) flip to black/grey without touching components.
+ *
+ * The mapping inverts Tailwind's usual "higher number = darker" convention:
+ *   sky-50/100/200 → near-white tints
+ *   sky-400        → mid-grey
+ *   sky-500/600/700 → near-black (primary / hover / pressed) */
+@theme inline {
+  /* Boxy aesthetic — flatten every Tailwind radius token. `rounded-full` is
+   * kept (default 9999px) for spinner circles only; anywhere we'd previously
+   * see a pill or rounded card now reads as a hard rectangle. */
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
+
+  --color-sky-50: var(--mono-50);
+  --color-sky-100: var(--mono-100);
+  --color-sky-200: var(--mono-200);
+  --color-sky-400: var(--mono-500);
+  --color-sky-500: var(--mono-950);
+  --color-sky-600: var(--mono-800);
+  --color-sky-700: var(--mono-700);
+  --color-sky-800: var(--mono-600);
+
+  --color-ink-900: var(--mono-950);
+  --color-ink-700: var(--mono-700);
+  --color-ink-500: var(--mono-500);
+  --color-ink-400: var(--mono-400);
+  --color-ink-300: var(--mono-300);
+  --color-ink-200: var(--mono-200);
+  --color-ink-100: var(--mono-100);
+  --color-ink-50: var(--mono-50);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-outfit);
+  --font-mono: var(--font-source-code-pro);
+}
+
+html,
+body {
+  background: var(--mono-50);
+  color: var(--mono-700);
+  min-height: 100%;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Heading + mono defaults live in `@layer base` so Tailwind utilities
+ * (`text-white`, `text-ink-500`, etc.) always win — utilities are in
+ * `@layer utilities` which is higher priority than `base`. */
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .font-display {
+    font-family: var(--font-outfit), var(--font-inter), ui-sans-serif,
+      system-ui, sans-serif;
+    color: var(--mono-950);
+    letter-spacing: -0.01em;
+  }
+
+  code,
+  pre,
+  .font-mono {
+    font-family: var(--font-source-code-pro), ui-monospace, SFMono-Regular,
+      Menlo, Consolas, monospace;
+  }
+}
+
+/* Subtle dotted backdrop, now in neutral grey. */
+.bg-dots {
+  background-image: radial-gradient(
+    circle,
+    rgba(24, 24, 27, 0.06) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
