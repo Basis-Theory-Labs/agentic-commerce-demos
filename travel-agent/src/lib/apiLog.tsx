@@ -121,6 +121,8 @@ export function useLoggedFetch() {
 
       // Only the upstream BT call is interesting in the demo panel. Decode it
       // from the X-BT-Trace header attached by withTrace() in src/lib/api.ts.
+      // (The caller-supplied `label` is intentionally unused on success — the
+      // trace's URL + method give a more accurate label.)
       void label;
       const trace = decodeTrace(response.headers.get("X-BT-Trace"));
       if (trace) {

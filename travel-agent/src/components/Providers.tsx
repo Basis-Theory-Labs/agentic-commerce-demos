@@ -13,9 +13,19 @@ import { ApiLogProvider } from "@/lib/apiLog";
 import { AgentProvider } from "@/components/AgentProvider";
 
 const PUBLIC_KEY = process.env.NEXT_PUBLIC_BT_API_KEY || "";
-const ENV = (process.env.NEXT_PUBLIC_BT_ENVIRONMENT || "test") as
-  | "production"
-  | "test";
+const RAW_ENV = process.env.NEXT_PUBLIC_BT_ENVIRONMENT || "test";
+const DEFAULT_LOCAL_API_URL = "http://localhost:3001";
+
+// The react-agentic SDK only knows about "production" / "test". When the demo
+// runs against a local BT-compatible API ("local"), we tell the SDK we're in
+// "test" mode and override the agentic base URL via `agenticApiUrl`.
+const isLocal = RAW_ENV === "local";
+const SDK_ENV: "production" | "test" = isLocal
+  ? "test"
+  : (RAW_ENV as "production" | "test");
+const AGENTIC_API_URL = isLocal
+  ? `${process.env.NEXT_PUBLIC_BT_LOCAL_API_URL || DEFAULT_LOCAL_API_URL}/agentic`
+  : undefined;
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const { bt } = useBasisTheory(PUBLIC_KEY);
@@ -24,7 +34,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <ApiLogProvider>
       <AgentProvider>
         <BasisTheoryProvider bt={bt}>
-          <BtAiProvider apiKey={PUBLIC_KEY} environment={ENV}>
+          <BtAiProvider
+            apiKey={PUBLIC_KEY}
+            environment={SDK_ENV}
+            agenticApiUrl={AGENTIC_API_URL}
+          >
             {children}
           </BtAiProvider>
         </BasisTheoryProvider>

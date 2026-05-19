@@ -9,11 +9,18 @@
 import { NextResponse } from "next/server";
 
 const BT_ENVIRONMENT = process.env.BT_ENVIRONMENT || "test";
+const DEFAULT_LOCAL_API_URL = "http://localhost:3001";
 
+// Resolves the Basis Theory API base URL for the current environment.
+// `local` is for pointing the demo at a Basis Theory API running on your
+// own machine (defaults to http://localhost:3001, overridable via
+// BT_LOCAL_API_URL).
 function getBaseUrl(): string {
   switch (BT_ENVIRONMENT) {
     case "production":
       return "https://api.basistheory.com";
+    case "local":
+      return process.env.BT_LOCAL_API_URL || DEFAULT_LOCAL_API_URL;
     case "test":
     default:
       return "https://api.test.basistheory.com";
