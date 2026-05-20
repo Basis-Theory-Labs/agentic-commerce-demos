@@ -11,9 +11,9 @@ Each demo is a stand-alone app (its own `package.json`, its own
 
 ## Demos
 
-| Demo | Stack | What it shows |
-|---|---|---|
-| [`travel-agent/`](./travel-agent) | Next.js + Elements + react-agentic | A chat assistant that searches flights, issues a single-use virtual card, and "books" the flight on a simulated airline checkout. Full new-card flow (tokenize → enroll → verify → instruction → verify → credentials) plus a saved-card fast path. Every API call is rendered live in a hideable "Behind the calls" panel. |
+| Demo | What it shows |
+|---|---|
+| [`travel-agent/`](./travel-agent) | A chat assistant that searches flights, issues a single-use virtual card, and "books" the flight on a simulated airline checkout. Full new-card flow (tokenize → enroll → verify → instruction → verify → credentials) plus a saved-card fast path. Every API call is rendered live in a hideable "Behind the calls" panel. |
 
 ## What is "agentic commerce"?
 
