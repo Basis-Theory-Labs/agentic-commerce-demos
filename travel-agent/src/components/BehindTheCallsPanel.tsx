@@ -10,8 +10,6 @@ const SOURCE_LABEL: Record<CallSource, string> = {
   elements: "react-elements SDK",
 };
 
-// All four sources share the same neutral chip — we lean on the label text
-// rather than colour to differentiate them.
 const SOURCE_COLOR: Record<CallSource, string> = {
   browser: "bg-ink-50 text-ink-700 border-ink-200",
   server: "bg-ink-900 text-white border-ink-900",
@@ -49,7 +47,6 @@ export default function BehindTheCallsPanel() {
 
   return (
     <>
-      {/* Toggle button — visible whether panel is open or closed */}
       <button
         onClick={() => setOpen((v) => !v)}
         className="fixed bottom-4 right-4 z-40 bg-ink-900 text-white text-sm font-medium rounded-full px-4 py-2.5 shadow-lg hover:bg-ink-700 transition-colors flex items-center gap-2"

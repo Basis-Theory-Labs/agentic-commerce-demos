@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   if (idError) return NextResponse.json({ error: idError }, { status: 400 });
 
   const body = await request.json();
-  const result = await btProxy(`/agentic/agents/${agentId}/instructions`, {
+  const result = await btProxy(`/agents/${agentId}/instructions`, {
     method: "POST",
     body,
   });

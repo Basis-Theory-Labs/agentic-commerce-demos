@@ -20,9 +20,6 @@ function countdownLabel(departAt: string): string {
   return `In ${days} days`;
 }
 
-// Big "Upcoming Trip" card shown once the booking is complete. Mirrors a
-// modern trip-summary widget: airport codes large on the left, payment +
-// confirmation details on the right.
 export default function BookingReceipt({
   flight,
   enrollment,
@@ -44,7 +41,6 @@ export default function BookingReceipt({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_1px_auto] gap-5 sm:gap-6">
-        {/* Itinerary */}
         <div className="space-y-3">
           <div className="flex items-center gap-3 font-display text-3xl font-semibold text-ink-900 tracking-tight leading-none">
             <span>{origin.code}</span>
@@ -78,10 +74,8 @@ export default function BookingReceipt({
           </div>
         </div>
 
-        {/* Vertical divider (only on wider viewports) */}
         <div className="hidden sm:block bg-ink-200" />
 
-        {/* Payment + confirmation */}
         <div className="space-y-4 sm:min-w-[180px]">
           <div>
             <div className="text-[10px] uppercase tracking-wider text-ink-500 mb-1">

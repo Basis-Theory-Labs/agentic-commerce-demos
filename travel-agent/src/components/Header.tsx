@@ -14,10 +14,11 @@ export default function Header({ onReset }: { onReset: () => void }) {
           <Image
             src="/skyagent-logo.png"
             alt="SkyAgent"
-            width={44}
+            width={66}
             height={44}
             priority
             className="invert -my-2"
+            style={{ width: "auto", height: "44px" }}
           />
           <span className="font-display font-semibold text-xl text-white leading-tight tracking-tight">
             SkyAgent

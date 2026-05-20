@@ -1,10 +1,5 @@
 "use client";
 
-// Client-side call log. Every API call the demo makes — server-side proxies,
-// upstream BT calls (decoded from the X-BT-Trace header), Elements
-// tokenization, and react-agentic SDK calls — is appended here so the
-// "Behind the calls" panel can render it.
-
 import {
   createContext,
   useCallback,
@@ -44,9 +39,6 @@ export function ApiLogProvider({ children }: { children: React.ReactNode }) {
   const counter = useRef(0);
 
   const log = useCallback((entry: Omit<CallEntry, "id" | "timestamp">) => {
-    // Capture the id *before* the updater closure so two back-to-back calls
-    // (e.g. browser hop + server hop from the same fetch) get distinct ids
-    // even if React batches the setState calls.
     counter.current += 1;
     const id = `call-${counter.current}`;
     const timestamp = Date.now();
@@ -56,7 +48,9 @@ export function ApiLogProvider({ children }: { children: React.ReactNode }) {
   const clear = useCallback(() => setEntries([]), []);
 
   const value = useMemo(() => ({ entries, log, clear }), [entries, log, clear]);
-  return <ApiLogContext.Provider value={value}>{children}</ApiLogContext.Provider>;
+  return (
+    <ApiLogContext.Provider value={value}>{children}</ApiLogContext.Provider>
+  );
 }
 
 export function useApiLog(): ApiLogContextValue {
@@ -65,7 +59,6 @@ export function useApiLog(): ApiLogContextValue {
   return ctx;
 }
 
-// Decode the X-BT-Trace header attached by withTrace() in src/lib/api.ts.
 function decodeTrace(header: string | null): {
   method: string;
   url: string;
@@ -83,16 +76,13 @@ function decodeTrace(header: string | null): {
   }
 }
 
-// A `fetch` wrapper that logs both the local API call and the upstream BT
-// call (decoded from X-BT-Trace). Use this for every demo fetch so the panel
-// can show what really happened.
 export function useLoggedFetch() {
   const { log } = useApiLog();
 
   return useCallback(
     async (
       input: string,
-      init: RequestInit & { step?: string; label?: string } = {}
+      init: RequestInit & { step?: string; label?: string } = {},
     ): Promise<Response> => {
       const { step, label, ...rest } = init;
       const method = rest.method ?? "GET";
@@ -102,28 +92,21 @@ export function useLoggedFetch() {
       try {
         response = await fetch(input, rest);
       } catch (err) {
-        // The browser → API-route hop is internal plumbing; we don't log it
-        // on success because it isn't a Basis Theory call. But a network-level
-        // failure means we never reached BT at all, so surface it as a
-        // browser-source entry for visibility.
         log({
           source: "browser",
           label: label ?? `${method} ${input}`,
           method,
           url: input,
           ok: false,
-          response: { error: err instanceof Error ? err.message : "fetch failed" },
+          response: {
+            error: err instanceof Error ? err.message : "fetch failed",
+          },
           duration_ms: Date.now() - start,
           step,
         });
         throw err;
       }
 
-      // Only the upstream BT call is interesting in the demo panel. Decode it
-      // from the X-BT-Trace header attached by withTrace() in src/lib/api.ts.
-      // (The caller-supplied `label` is intentionally unused on success — the
-      // trace's URL + method give a more accurate label.)
-      void label;
       const trace = decodeTrace(response.headers.get("X-BT-Trace"));
       if (trace) {
         log({
@@ -142,6 +125,6 @@ export function useLoggedFetch() {
 
       return response;
     },
-    [log]
+    [log],
   );
 }

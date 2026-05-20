@@ -16,9 +16,6 @@ interface Props {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Collects an email + card details, then creates a token via Basis Theory
-// Elements. The card number never enters this component's DOM — Elements
-// handles all input + tokenization inside sandboxed iframes.
 export default function TokenizeCard({ onTokenized }: Props) {
   const { bt } = useBasisTheory();
   const cardRef = useRef<ICardElement | null>(null);
@@ -58,7 +55,11 @@ export default function TokenizeCard({ onTokenized }: Props) {
         label: "bt.tokens.create({ type: 'card' })",
         status: 201,
         ok: true,
-        response: { id: token.id, type: token.type, fingerprint: token.fingerprint },
+        response: {
+          id: token.id,
+          type: token.type,
+          fingerprint: token.fingerprint,
+        },
         duration_ms: Date.now() - start,
         step: "tokenize",
       });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Credentials } from "@/lib/types";
 import type { FlightOption } from "@/lib/flights";
 
@@ -12,17 +12,14 @@ interface Props {
 
 type Stage = "filling" | "submitting" | "approved";
 
-// Simulated airline checkout. The agent has the virtual card credentials and
-// "uses them" on the merchant's site. We type them in character-by-character
-// for visual effect, then show an approval.
+const TYPE_INTERVAL_MS = 80;
+const SUBMIT_DELAY_MS = 700;
+const APPROVE_DELAY_MS = 3000;
+const COMPLETE_DELAY_MS = 1500;
+
 export default function AirlineCheckout({ flight, credentials, onComplete }: Props) {
   const [stage, setStage] = useState<Stage>("filling");
   const [typed, setTyped] = useState({ number: "", expiry: "", cvc: "" });
-
-  // Latest onComplete in a ref so the "approved" effect can fire exactly once
-  // without depending on the callback identity.
-  const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     const number = credentials.card.number;
@@ -42,24 +39,24 @@ export default function AirlineCheckout({ flight, credentials, onComplete }: Pro
       });
       if (i >= number.length + expiry.length + cvc.length) {
         clearInterval(interval);
-        setTimeout(() => setStage("submitting"), 700);
+        setTimeout(() => setStage("submitting"), SUBMIT_DELAY_MS);
       }
-    }, 80);
+    }, TYPE_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [credentials]);
 
   useEffect(() => {
     if (stage !== "submitting") return;
-    const t = setTimeout(() => setStage("approved"), 3000);
+    const t = setTimeout(() => setStage("approved"), APPROVE_DELAY_MS);
     return () => clearTimeout(t);
   }, [stage]);
 
   useEffect(() => {
     if (stage !== "approved") return;
     const ref = `${flight.airlineCode}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-    const t = setTimeout(() => onCompleteRef.current(ref), 1500);
+    const t = setTimeout(() => onComplete(ref), COMPLETE_DELAY_MS);
     return () => clearTimeout(t);
-  }, [stage, flight.airlineCode]);
+  }, [stage, flight.airlineCode, onComplete]);
 
   const host = new URL(flight.bookingUrl).host;
 

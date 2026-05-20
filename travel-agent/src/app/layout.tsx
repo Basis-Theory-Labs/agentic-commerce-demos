@@ -3,10 +3,6 @@ import { Inter, Outfit, Source_Code_Pro } from "next/font/google";
 import Providers from "@/components/Providers";
 import "./globals.css";
 
-// Type scale used across basistheory.com:
-//  - Inter for body text
-//  - Outfit for display / headings
-//  - Source Code Pro for monospace + code
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],

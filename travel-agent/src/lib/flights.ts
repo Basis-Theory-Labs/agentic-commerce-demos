@@ -1,8 +1,3 @@
-// Mock flight data + a tiny natural-language parser. There's no real LLM
-// or flight API behind this — we extract origin/destination/date from the
-// user's message with regex and synthesize plausible options so the demo
-// stays self-contained.
-
 export interface Airport {
   code: string;
   city: string;
@@ -24,10 +19,14 @@ const AIRPORTS: Airport[] = [
   { code: "SYD", city: "Sydney", country: "Australia" },
 ];
 
+const DEFAULT_ORIGIN = AIRPORTS[0];
+const DEFAULT_DESTINATION = AIRPORTS[7];
+const DEFAULT_DAYS_OUT = 30;
+
 export interface FlightSearch {
   origin: Airport;
   destination: Airport;
-  date: string; // ISO date YYYY-MM-DD
+  date: string;
   passengers: number;
 }
 
@@ -36,11 +35,11 @@ export interface FlightOption {
   airline: string;
   airlineCode: string;
   flightNumber: string;
-  departAt: string; // ISO datetime
+  departAt: string;
   arriveAt: string;
   durationMinutes: number;
   stops: number;
-  price: number; // USD
+  price: number;
   bookingUrl: string;
 }
 
@@ -55,7 +54,6 @@ const AIRLINES: Array<{ name: string; code: string; bookingHost: string }> = [
 
 function findAirport(text: string): Airport | null {
   const lower = text.toLowerCase();
-  // Match 3-letter IATA code first.
   const codeMatch = text.match(/\b([A-Z]{3})\b/);
   if (codeMatch) {
     const ap = AIRPORTS.find((a) => a.code === codeMatch[1]);
@@ -68,19 +66,15 @@ function findAirport(text: string): Airport | null {
   );
 }
 
-// Very small natural-language parser. Picks up "from X to Y" / "X to Y", a
-// date-ish phrase, and a passenger count. Falls back to sensible defaults
-// so the demo always returns something.
 export function parseFlightQuery(message: string): FlightSearch {
   const fromTo = message.match(/from\s+([^,]+?)\s+to\s+(.+?)(?:\s+on\s+|\s+next\s+|\s+in\s+|$)/i);
   const justTo = message.match(/\bto\s+([A-Za-z]{3,})/i);
   const orig = fromTo ? findAirport(fromTo[1]) : null;
   const dest = fromTo ? findAirport(fromTo[2]) : justTo ? findAirport(justTo[1]) : null;
 
-  const origin = orig ?? AIRPORTS[0]; // GRU
-  const destination = dest && dest.code !== origin.code ? dest : AIRPORTS[7]; // LIS
+  const origin = orig ?? DEFAULT_ORIGIN;
+  const destination = dest && dest.code !== origin.code ? dest : DEFAULT_DESTINATION;
 
-  // Date — look for "next month", "next week", "tomorrow", "Jun 15", "June 15".
   const date = parseDate(message);
 
   const paxMatch = message.match(/(\d+)\s+(passenger|person|people|adult)s?/i);
@@ -105,7 +99,6 @@ function parseDate(message: string): string {
     return d.toISOString().slice(0, 10);
   }
 
-  // "Jun 15" / "June 15" / "15 June".
   const months = [
     "january", "february", "march", "april", "may", "june",
     "july", "august", "september", "october", "november", "december",
@@ -121,8 +114,7 @@ function parseDate(message: string): string {
     }
   }
 
-  // Default: 30 days out.
-  return shiftDays(now, 30);
+  return shiftDays(now, DEFAULT_DAYS_OUT);
 }
 
 function shiftDays(from: Date, days: number): string {
@@ -131,8 +123,6 @@ function shiftDays(from: Date, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-// Pseudo-stable price: hashes route+airline so the same query yields the
-// same numbers between renders, but different routes look different.
 function hash(str: string): number {
   let h = 0;
   for (let i = 0; i < str.length; i++) {
@@ -149,8 +139,8 @@ export function generateFlightOptions(search: FlightSearch): FlightOption[] {
 
   return AIRLINES.slice(0, 5).map((airline, i) => {
     const seed = hash(`${routeKey}-${airline.code}`);
-    const departHour = 6 + (seed % 16); // between 06:00 and 22:00
-    const durationMinutes = 240 + ((seed >> 3) % 600); // 4h–14h
+    const departHour = 6 + (seed % 16);
+    const durationMinutes = 240 + ((seed >> 3) % 600);
     const stops = (seed >> 6) % 3 === 0 ? 1 : 0;
     const priceJitter = (seed >> 9) % 250;
     const price = basePrice + priceJitter - (i === 0 ? 40 : 0);

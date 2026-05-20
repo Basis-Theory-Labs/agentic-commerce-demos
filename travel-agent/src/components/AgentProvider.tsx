@@ -1,11 +1,5 @@
 "use client";
 
-// One agent per browser, persisted across sessions. The first time the app
-// boots we call `POST /agentic/agents` and stash the id in `localStorage`
-// (keyed by environment so test/production don't mix). Every subsequent
-// enrollment + instruction in this demo reuses that single agent — which is
-// what makes the "Saved Card" flow actually show anything.
-
 import {
   createContext,
   useContext,
@@ -25,6 +19,8 @@ const AgentContext = createContext<AgentContextValue>({
   error: null,
 });
 
+const AGENT_NAME = "SkyAgent";
+
 function storageKey(): string {
   const env = process.env.NEXT_PUBLIC_BT_ENVIRONMENT || "test";
   return `skyagent.agentId.${env}`;
@@ -34,8 +30,6 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const loggedFetch = useLoggedFetch();
   const [agentId, setAgentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // StrictMode mounts effects twice in dev — guard so we don't create two
-  // agents on first load.
   const bootstrapped = useRef(false);
 
   useEffect(() => {
@@ -45,6 +39,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       const stored = window.localStorage.getItem(storageKey());
       if (stored) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setAgentId(stored);
         return;
       }
@@ -55,7 +50,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
         const res = await loggedFetch("/api/agents", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: "SkyAgent" }),
+          body: JSON.stringify({ name: AGENT_NAME }),
           label: "POST /api/agents",
           step: "bootstrap-agent",
         });

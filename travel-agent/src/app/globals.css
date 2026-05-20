@@ -1,8 +1,5 @@
 @import "tailwindcss";
 
-/* Monochrome palette inspired by the SkyAgent mockups: pure black for
- * primary actions, near-whites for surfaces, neutral greys in between.
- * Red stays in the system but only for error states. */
 :root {
   --mono-0: #ffffff;
   --mono-50: #fafafa;
@@ -24,18 +21,7 @@
   --error: #dc2626;
 }
 
-/* The `sky-*` namespace was the original accent in this codebase. Map it onto
- * the monochrome scale so existing utility classes (`bg-sky-500`, `text-sky-700`
- * …) flip to black/grey without touching components.
- *
- * The mapping inverts Tailwind's usual "higher number = darker" convention:
- *   sky-50/100/200 → near-white tints
- *   sky-400        → mid-grey
- *   sky-500/600/700 → near-black (primary / hover / pressed) */
 @theme inline {
-  /* Boxy aesthetic — flatten every Tailwind radius token. `rounded-full` is
-   * kept (default 9999px) for spinner circles only; anywhere we'd previously
-   * see a pill or rounded card now reads as a hard rectangle. */
   --radius-xs: 0;
   --radius-sm: 0;
   --radius-md: 0;
@@ -83,9 +69,6 @@ body {
     BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Heading + mono defaults live in `@layer base` so Tailwind utilities
- * (`text-white`, `text-ink-500`, etc.) always win — utilities are in
- * `@layer utilities` which is higher priority than `base`. */
 @layer base {
   h1,
   h2,
@@ -108,7 +91,6 @@ body {
   }
 }
 
-/* Subtle dotted backdrop, now in neutral grey. */
 .bg-dots {
   background-image: radial-gradient(
     circle,

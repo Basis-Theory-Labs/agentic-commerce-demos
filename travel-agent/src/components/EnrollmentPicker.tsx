@@ -13,16 +13,10 @@ interface Props {
 const WALLET_NAME = "SkyAgent";
 const MAX_CARDS = 3;
 
-// Lists active enrollments that belong to this app's wallet. The `GET
-// /enrollments` list endpoint doesn't return `agent_ids`, so we identify our
-// own cards by the `wallet_name` we set at enrollment-creation time. Limited
-// to the most recent few so the picker stays tight.
 export default function EnrollmentPicker({ onPick, onUseNewCard }: Props) {
   const loggedFetch = useLoggedFetch();
   const [enrollments, setEnrollments] = useState<Enrollment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Guard against React StrictMode's intentional double-mount in dev so the
-  // list call doesn't fire twice for one render.
   const fetched = useRef(false);
 
   useEffect(() => {
@@ -57,9 +51,6 @@ export default function EnrollmentPicker({ onPick, onUseNewCard }: Props) {
     return <div className="text-sm text-ink-500">Loading saved cards…</div>;
   }
 
-  // Show SkyAgent-tagged cards in either state — active ones are immediately
-  // usable, pending ones still need ownership verification but the user can
-  // resume that flow by picking them again.
   const usable = enrollments
     .filter(
       (e) =>
@@ -80,7 +71,7 @@ export default function EnrollmentPicker({ onPick, onUseNewCard }: Props) {
           onClick={onUseNewCard}
           className="w-full bg-ink-900 hover:bg-ink-700 text-white text-sm font-medium py-2"
         >
-          Add New Card
+          Add new card
         </button>
       </div>
     );
@@ -115,7 +106,7 @@ export default function EnrollmentPicker({ onPick, onUseNewCard }: Props) {
                   : "bg-yellow-100 border-yellow-200 text-yellow-800"
               }`}
             >
-              {isActive ? "Active" : "Verification Required"}
+              {isActive ? "Active" : "Verification required"}
             </span>
           </button>
         );
@@ -124,7 +115,7 @@ export default function EnrollmentPicker({ onPick, onUseNewCard }: Props) {
         onClick={onUseNewCard}
         className="text-sm text-ink-900 hover:text-ink-700 font-medium pt-1 underline underline-offset-2"
       >
-        Add New Card
+        Add new card
       </button>
     </div>
   );

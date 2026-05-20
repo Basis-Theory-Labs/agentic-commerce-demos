@@ -1,11 +1,5 @@
 "use client";
 
-// Travel-agent demo orchestrator. Rendering is data-driven: each bubble shows
-// once its prerequisites in `data` are met and stays visible for the rest of
-// the transcript. Interactive widgets (buttons, forms, spinners) appear
-// inside their bubble based on `stage`, then disappear when the user moves
-// on — but the surrounding text always sticks around.
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAgentic } from "@basis-theory/react-agentic";
 import Header from "@/components/Header";
@@ -31,6 +25,9 @@ import { useApiLog, useLoggedFetch } from "@/lib/apiLog";
 import type { Credentials, Enrollment } from "@/lib/types";
 
 const PRESET_QUERY = "Find me a flight from São Paulo to Lisbon next month";
+const WALLET_NAME = "SkyAgent";
+const SDK_TIMEOUT_MS = 90_000;
+const SDK_INIT_TIMEOUT_MS = 8_000;
 
 interface BookingData {
   search: FlightSearch;
@@ -94,6 +91,15 @@ function SdkErrorBanner() {
   );
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(message)), ms)
+    ),
+  ]);
+}
+
 const CHAT_BUBBLE =
   "bg-white border border-ink-200 px-4 py-3 text-sm space-y-3";
 
@@ -109,17 +115,14 @@ export default function Page() {
   });
   const [error, setError] = useState<string | null>(null);
 
-  // Detect ad-blockers / HTTP-only environments by timing out the SDK init.
-  const [sdkTimedOut, setSdkTimedOut] = useState(false);
+  const [sdkInitTimedOut, setSdkInitTimedOut] = useState(false);
   useEffect(() => {
-    setSdkTimedOut(false);
     if (ready) return;
-    const t = setTimeout(() => setSdkTimedOut(true), 8000);
+    const t = setTimeout(() => setSdkInitTimedOut(true), SDK_INIT_TIMEOUT_MS);
     return () => clearTimeout(t);
   }, [ready]);
+  const sdkTimedOut = !ready && sdkInitTimedOut;
 
-  const dataRef = useRef(data);
-  dataRef.current = data;
   const inFlight = useRef(false);
 
   const reset = useCallback(() => {
@@ -129,22 +132,21 @@ export default function Page() {
     inFlight.current = false;
   }, []);
 
-  // --- Flight pick ---
   const handlePickFlight = useCallback((flight: FlightOption) => {
     setData((d) => ({ ...d, flight }));
     setStage("payment_choice");
   }, []);
 
-  // --- Payment choice ---
   const handleNewCard = useCallback(() => {
     setData((d) => ({ ...d, paymentChoice: "new" }));
     setStage("tokenize");
   }, []);
+
   const handleSavedCard = useCallback(() => {
     setData((d) => ({ ...d, paymentChoice: "saved" }));
     setStage("pick_saved");
   }, []);
-  // --- New-card path: tokenize → enroll the card against the persisted agent ---
+
   const provisionNewCard = useCallback(
     async (card: TokenizedCard) => {
       if (inFlight.current) return;
@@ -166,7 +168,7 @@ export default function Page() {
           body: JSON.stringify({
             token_id: card.tokenId,
             agent_id: persistedAgentId,
-            wallet_name: "SkyAgent",
+            wallet_name: WALLET_NAME,
             consumer: { email: card.email },
           }),
           label: "POST /api/enrollments",
@@ -190,9 +192,8 @@ export default function Page() {
     [loggedFetch, persistedAgentId, agentBootError]
   );
 
-  // --- New-card path: verify ownership ---
   const handleVerifyEnrollment = useCallback(async () => {
-    const enrollment = dataRef.current.enrollment;
+    const enrollment = data.enrollment;
     if (!enrollment || inFlight.current) return;
     inFlight.current = true;
     setError(null);
@@ -200,20 +201,11 @@ export default function Page() {
 
     const start = Date.now();
     try {
-      const result = await Promise.race([
+      const result = await withTimeout(
         verifyEnrollment(enrollment.id),
-        new Promise<never>((_, reject) =>
-          setTimeout(
-            () =>
-              reject(
-                new Error(
-                  "Verification timed out. Disable ad-block / check HTTPS and try again."
-                )
-              ),
-            90_000
-          )
-        ),
-      ]);
+        SDK_TIMEOUT_MS,
+        "Verification timed out. Disable ad-block / check HTTPS and try again."
+      );
       log({
         source: "sdk",
         label: `verifyEnrollment("${enrollment.id}")`,
@@ -239,13 +231,8 @@ export default function Page() {
     } finally {
       inFlight.current = false;
     }
-  }, [verifyEnrollment, log]);
+  }, [data.enrollment, verifyEnrollment, log]);
 
-  // --- Saved-card path. All our enrollments are linked to `persistedAgentId`
-  //     (we created them that way), and the list endpoint doesn't return
-  //     `agent_ids`, so we reuse the persisted agent rather than reading it
-  //     off the enrollment. A pending enrollment routes through the verify
-  //     step before it can be used. ---
   const handlePickSaved = useCallback(
     (enrollment: Enrollment) => {
       if (!persistedAgentId) return;
@@ -261,9 +248,8 @@ export default function Page() {
     [persistedAgentId]
   );
 
-  // --- Confirm payment: instruction → verify → credentials ---
   const handleAuthorize = useCallback(async () => {
-    const { agentId, enrollment, flight } = dataRef.current;
+    const { agentId, enrollment, flight } = data;
     if (!agentId || !enrollment || !flight || inFlight.current) return;
     inFlight.current = true;
     setError(null);
@@ -302,15 +288,11 @@ export default function Page() {
 
       const verifyStart = Date.now();
       try {
-        const result = await Promise.race([
+        const result = await withTimeout(
           verifyInstruction(agentId, instruction.id),
-          new Promise<never>((_, reject) =>
-            setTimeout(
-              () => reject(new Error("Instruction verification timed out")),
-              90_000
-            )
-          ),
-        ]);
+          SDK_TIMEOUT_MS,
+          "Instruction verification timed out"
+        );
         log({
           source: "sdk",
           label: `verifyInstruction("${agentId}", "${instruction.id}")`,
@@ -360,9 +342,8 @@ export default function Page() {
     } finally {
       inFlight.current = false;
     }
-  }, [loggedFetch, log, verifyInstruction]);
+  }, [data, loggedFetch, log, verifyInstruction]);
 
-  // --- Airline "approves" → finalize the demo ---
   const handleAirlineComplete = useCallback((transactionRef: string) => {
     setData((d) => ({ ...d, confirmationCode: transactionRef }));
     setStage("booked");
@@ -375,7 +356,6 @@ export default function Page() {
       <Header onReset={reset} />
 
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-8 space-y-5">
-        {/* --- Pre-loaded query + flight list --- */}
         <ChatMessage role="user">
           Find me a flight from <strong>{data.search.origin.city}</strong> to{" "}
           <strong>{data.search.destination.city}</strong> on {flightDateLabel}.
@@ -395,7 +375,6 @@ export default function Page() {
           />
         </ChatMessage>
 
-        {/* --- Flight pick + payment choice prompt --- */}
         {data.flight && (
           <>
             <ChatMessage role="user">
@@ -416,14 +395,12 @@ export default function Page() {
           </>
         )}
 
-        {/* --- User confirms their choice --- */}
         {data.paymentChoice && (
           <ChatMessage role="user">
             {data.paymentChoice === "new" ? "New Card" : "Saved Card"}
           </ChatMessage>
         )}
 
-        {/* --- New-card path: tokenize prompt --- */}
         {data.paymentChoice === "new" && (
           <ChatMessage role="assistant">
             <div className={CHAT_BUBBLE}>
@@ -434,13 +411,12 @@ export default function Page() {
             )}
             {stage === "saving_card" && (
               <div className={CHAT_BUBBLE}>
-                <Spinner label="Saving Card to Wallet…" />
+                <Spinner label="Saving card to wallet…" />
               </div>
             )}
           </ChatMessage>
         )}
 
-        {/* --- Saved-card path: picker --- */}
         {data.paymentChoice === "saved" && !data.enrollment && (
           <ChatMessage role="assistant">
             <div className={CHAT_BUBBLE}>Pick a previously saved card.</div>
@@ -453,17 +429,15 @@ export default function Page() {
           </ChatMessage>
         )}
 
-        {/* --- New-card path: user submits card details --- */}
         {data.paymentChoice === "new" && data.enrollment && (
           <ChatMessage role="user">
-            Card Details for{" "}
+            Card details for{" "}
             <span className="font-mono">
               •••• {data.enrollment.card.last4}
             </span>
           </ChatMessage>
         )}
 
-        {/* --- Verify ownership (new-card path, or a pending saved card) --- */}
         {data.enrollment &&
           data.enrollment.status === "pending_verification" && (
             <ChatMessage role="assistant">
@@ -484,7 +458,7 @@ export default function Page() {
                       className="w-full bg-ink-900 hover:bg-ink-700 disabled:opacity-50 text-white text-sm font-medium py-2 grid place-items-center"
                     >
                       {ready ? (
-                        "Verify Card"
+                        "Verify card"
                       ) : (
                         <span className="w-4 h-4 inline-block rounded-full border-2 border-white border-t-transparent animate-spin" />
                       )}
@@ -498,53 +472,49 @@ export default function Page() {
             </ChatMessage>
           )}
 
-        {/* --- Post-verification acknowledgement (only when we actually
-              just verified — i.e. the enrollment was pending). --- */}
         {data.enrollment &&
           data.enrollment.status === "pending_verification" &&
           data.enrollmentVerified && (
             <>
-              <ChatMessage role="user">Verified Card</ChatMessage>
+              <ChatMessage role="user">Verified card</ChatMessage>
               <ChatMessage role="assistant">
                 <div className={CHAT_BUBBLE}>
-                  Thanks for verifying! The card was added to your wallet.
+                  Thanks for verifying. The card was added to your wallet.
                 </div>
               </ChatMessage>
             </>
           )}
 
-        {/* --- Authorization prompt (only after the card is verified) --- */}
         {data.enrollment && data.enrollmentVerified && data.flight && (
-            <ChatMessage role="assistant">
-              <div className={CHAT_BUBBLE}>
-                <p>
-                  Do you authorize the agent to use the card for a{" "}
-                  <strong>${data.flight.price}</strong> charge to{" "}
-                  {data.flight.airline}?
-                </p>
-                <CardChip enrollment={data.enrollment} />
-                {stage === "card_ready" && (
-                  <>
-                    {sdkTimedOut && !ready && <SdkErrorBanner />}
-                    {error && <p className="text-xs text-error">{error}</p>}
-                    <button
-                      onClick={handleAuthorize}
-                      disabled={!ready}
-                      className="w-full bg-ink-900 hover:bg-ink-700 disabled:opacity-50 text-white text-sm font-medium py-2 grid place-items-center"
-                    >
-                      {ready ? (
-                        "Authorize"
-                      ) : (
-                        <span className="w-4 h-4 inline-block rounded-full border-2 border-white border-t-transparent animate-spin" />
-                      )}
-                    </button>
-                  </>
-                )}
-              </div>
-            </ChatMessage>
-          )}
+          <ChatMessage role="assistant">
+            <div className={CHAT_BUBBLE}>
+              <p>
+                Do you authorize the agent to use the card for a{" "}
+                <strong>${data.flight.price}</strong> charge to{" "}
+                {data.flight.airline}?
+              </p>
+              <CardChip enrollment={data.enrollment} />
+              {stage === "card_ready" && (
+                <>
+                  {sdkTimedOut && !ready && <SdkErrorBanner />}
+                  {error && <p className="text-xs text-error">{error}</p>}
+                  <button
+                    onClick={handleAuthorize}
+                    disabled={!ready}
+                    className="w-full bg-ink-900 hover:bg-ink-700 disabled:opacity-50 text-white text-sm font-medium py-2 grid place-items-center"
+                  >
+                    {ready ? (
+                      "Authorize"
+                    ) : (
+                      <span className="w-4 h-4 inline-block rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
+          </ChatMessage>
+        )}
 
-        {/* --- Post-authorization acknowledgement + issuance spinner --- */}
         {data.paymentAuthorized && (
           <ChatMessage role="assistant">
             <div className={CHAT_BUBBLE}>
@@ -556,7 +526,6 @@ export default function Page() {
           </ChatMessage>
         )}
 
-        {/* --- Airline checkout simulation --- */}
         {data.credentials && data.flight && (
           <ChatMessage role="assistant">
             <div className={CHAT_BUBBLE}>
@@ -574,7 +543,6 @@ export default function Page() {
           </ChatMessage>
         )}
 
-        {/* --- Booked --- */}
         {data.confirmationCode && data.flight && data.enrollment && (
           <ChatMessage role="assistant">
             <div className={CHAT_BUBBLE}>

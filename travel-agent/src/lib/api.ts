@@ -1,29 +1,14 @@
-// Server-side helper used by all Next.js API routes.
-//
-// 1. Proxies HTTP calls to the Basis Theory API using the private key.
-// 2. Attaches a structured "X-BT-Trace" header to each response so the
-//    client-side "Behind the calls" panel can show the upstream call detail
-//    (URL, method, request body, status, response body). This is purely for
-//    demo visibility — production apps would not expose this.
-
 import { NextResponse } from "next/server";
 
 const BT_ENVIRONMENT = process.env.BT_ENVIRONMENT || "test";
-const DEFAULT_LOCAL_API_URL = "http://localhost:3001";
 
-// Resolves the Basis Theory API base URL for the current environment.
-// `local` is for pointing the demo at a Basis Theory API running on your
-// own machine (defaults to http://localhost:3001, overridable via
-// BT_LOCAL_API_URL).
 function getBaseUrl(): string {
   switch (BT_ENVIRONMENT) {
     case "production":
-      return "https://api.basistheory.com";
-    case "local":
-      return process.env.BT_LOCAL_API_URL || DEFAULT_LOCAL_API_URL;
+      return "https://api.basistheory.com/agentic";
     case "test":
     default:
-      return "https://api.test.basistheory.com";
+      return "https://api.test.basistheory.com/agentic";
   }
 }
 
@@ -51,7 +36,7 @@ interface ProxyResult {
 
 export async function btProxy(
   path: string,
-  init: { method?: string; body?: unknown } = {}
+  init: { method?: string; body?: unknown } = {},
 ): Promise<ProxyResult> {
   const apiKey = process.env.BT_API_KEY;
   if (!apiKey) {
@@ -79,7 +64,10 @@ export async function btProxy(
     try {
       parsed = JSON.parse(text);
     } catch {
-      parsed = { error: `Upstream returned non-JSON (${response.status})`, body: text };
+      parsed = {
+        error: `Upstream returned non-JSON (${response.status})`,
+        body: text,
+      };
     }
   }
 
@@ -98,11 +86,15 @@ export async function btProxy(
   };
 }
 
-// Wraps a proxy result into a Next response with the trace header.
-// The header is base64-encoded JSON so it survives transport.
-export function withTrace(result: ProxyResult, successStatus?: number): NextResponse {
+export function withTrace(
+  result: ProxyResult,
+  successStatus?: number,
+): NextResponse {
   const headers = new Headers();
-  headers.set("X-BT-Trace", Buffer.from(JSON.stringify(result.trace)).toString("base64"));
+  headers.set(
+    "X-BT-Trace",
+    Buffer.from(JSON.stringify(result.trace)).toString("base64"),
+  );
 
   const status = result.ok ? (successStatus ?? result.status) : result.status;
   return NextResponse.json(result.data, { status, headers });

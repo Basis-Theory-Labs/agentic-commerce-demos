@@ -7,10 +7,6 @@ interface Props {
   children: ReactNode;
 }
 
-// User → black bubble, white text. Assistant → renders children directly so
-// the page can style its own white/border bubbles + drop arbitrary inline
-// components (flight list, card picker, etc.) below them. No avatar — the
-// colour inversion of user vs. assistant is the only role marker.
 export default function ChatMessage({ role, children }: Props) {
   if (role === "user") {
     return (

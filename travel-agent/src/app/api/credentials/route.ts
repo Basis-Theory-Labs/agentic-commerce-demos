@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const result = await btProxy(
-    `/agentic/agents/${agentId}/instructions/${instructionId}/credentials`,
+    `/agents/${agentId}/instructions/${instructionId}/credentials`,
     { method: "POST", body }
   );
   return withTrace(result);

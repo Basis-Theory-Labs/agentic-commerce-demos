@@ -1,6 +1,3 @@
-// Minimal Basis Theory agentic-commerce types used by the travel-agent demo.
-// See https://developers.basistheory.com/ for the full API reference.
-
 export type Brand = "visa" | "mastercard";
 
 export interface Amount {
@@ -39,8 +36,6 @@ export interface Enrollment {
   provider: Brand | "visa-mock" | "mastercard-mock";
   status: "pending_verification" | "active" | "suspended" | "deleted" | "failed";
   card: EnrollmentCard;
-  // `agent_ids` is only present on the single-enrollment GET; the list
-  // endpoint omits it.
   agent_ids?: string[];
   wallet_name?: string | null;
   created_at: string;
