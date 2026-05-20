@@ -10,7 +10,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@basis-theory/react-agentic": "^2.0.0",
+    "@basis-theory/react-agentic": "^2.0.1",
     "@basis-theory/react-elements": "^2.12.2",
     "next": "16.2.6",
     "react": "19.2.4",
