@@ -18,7 +18,7 @@ import { CredentialRevealCard } from "@/components/CredentialRevealCard";
 import { Callout } from "@/components/ui/Callout";
 import { Button } from "@/components/ui/Button";
 import { CopyChip } from "@/components/ui/CopyChip";
-import { RailChips } from "@/components/ui/StatusPill";
+import { RailChips, StatusPill } from "@/components/ui/StatusPill";
 
 interface MintDef {
   key: string;
@@ -42,74 +42,83 @@ export function mintsFor(allowance: Allowance, challengeExpires: string): MintDe
     const provider = agentic.provider;
     const network = provider === "vic" ? "visa" : "mastercard";
     const definitions: Array<[CredentialFormat, MintDef]> = [
-      ["card", {
-        key: "agentic-card",
-        title: "Agentic Token — Card",
-        blurb: "A single-use virtual card (PAN, expiry, CVC) for typing into any checkout.",
-        body: {
-          rail: "agentic-token",
-          provider,
-          amount: { value: "5.00", currency },
-          credential: { format: "card" },
+      [
+        "card",
+        {
+          key: "agentic-card",
+          title: "Agentic Token — Card",
+          blurb: "A single-use virtual card (PAN, expiry, CVC) for typing into any checkout.",
+          body: {
+            rail: "agentic-token",
+            provider,
+            amount: { value: "5.00", currency },
+            credential: { format: "card" },
+          },
         },
-      }],
-      ["network-token", {
-        key: "agentic-network-token",
-        title:
-          provider === "vic"
-            ? "Visa Network Token — Short-Form Cryptogram"
-            : "Mastercard Network Token — DSRP",
-        blurb:
-          "A device PAN plus one-time cryptogram, for gateways that accept network tokens directly.",
-        body: {
-          rail: "agentic-token",
-          provider,
-          amount: { value: "5.00", currency },
-          credential: { format: "network-token" },
+      ],
+      [
+        "network-token",
+        {
+          key: "agentic-network-token",
+          title:
+            provider === "vic"
+              ? "Visa Network Token — Short-Form Cryptogram"
+              : "Mastercard Network Token — DSRP",
+          blurb:
+            "A device PAN plus one-time cryptogram, for gateways that accept network tokens directly.",
+          body: {
+            rail: "agentic-token",
+            provider,
+            amount: { value: "5.00", currency },
+            credential: { format: "network-token" },
+          },
         },
-      }],
-      ["mpp", {
-        key: "agentic-mpp",
-        title: `${provider === "vic" ? "Visa" : "Mastercard"} MPP Card Credential`,
-        blurb:
-          "A complete Machine Payments Protocol credential (method card) for an HTTP Authorization: Payment header.",
-        body: {
-          rail: "agentic-token",
-          provider,
-          credential: {
-            format: "mpp",
-            payload: {
-              challenge: {
-                id: "ch_card_example1",
-                realm: "merchant.example",
-                method: "card",
-                intent: "charge",
-                request: base64UrlJson({
-                  amount: "500",
-                  currency: currency.toLowerCase(),
+      ],
+      [
+        "mpp",
+        {
+          key: "agentic-mpp",
+          title: `${provider === "vic" ? "Visa" : "Mastercard"} MPP Card Credential`,
+          blurb:
+            "A complete Machine Payments Protocol credential (method card) for an HTTP Authorization: Payment header.",
+          body: {
+            rail: "agentic-token",
+            provider,
+            credential: {
+              format: "mpp",
+              payload: {
+                challenge: {
+                  id: "ch_card_example1",
+                  realm: "merchant.example",
+                  method: "card",
+                  intent: "charge",
+                  request: base64UrlJson({
+                    amount: "500",
+                    currency: currency.toLowerCase(),
+                    description: "Acme checkout",
+                    methodDetails: {
+                      acceptedNetworks: [network],
+                      merchantName: "Acme Store",
+                      billingRequired: true,
+                      encryptionJwk: EXAMPLE_MPP_CARD_ENCRYPTION_JWK,
+                    },
+                  }),
                   description: "Acme checkout",
-                  methodDetails: {
-                    acceptedNetworks: [network],
-                    merchantName: "Acme Store",
-                    billingRequired: true,
-                    encryptionJwk: EXAMPLE_MPP_CARD_ENCRYPTION_JWK,
-                  },
-                }),
-                description: "Acme checkout",
-                expires: challengeExpires,
+                  expires: challengeExpires,
+                },
+                billing_address: {
+                  line1: "123 Main St",
+                  city: "New York",
+                  state: "NY",
+                  zip: "10001",
+                  country_code: "US",
+                },
+                cardholder_full_name: "Example Shopper",
               },
-              billing_address: {
-                line1: "123 Main St",
-                city: "New York",
-                state: "NY",
-                zip: "10001",
-                country_code: "US",
-              },
-              cardholder_full_name: "Example Shopper",
             },
           },
         },
-      }],
+      ],
     ];
     mints.push(
       ...definitions
@@ -120,53 +129,59 @@ export function mintsFor(allowance: Allowance, challengeExpires: string): MintDe
 
   if (spt?.status === "active") {
     const definitions: Array<[CredentialFormat, MintDef]> = [
-      ["identifier", {
-        key: "spt-identifier",
-        title: "Stripe SPT (Raw Identifier)",
-        blurb:
-          "The raw Stripe Shared PaymentToken id, charged through the recipient's Stripe network profile.",
-        body: {
-          rail: "spt",
-          provider: "stripe",
-          amount: { value: "5.00", currency },
-          credential: {
-            format: "identifier",
-            payload: { network_business_profile: "np_example" },
+      [
+        "identifier",
+        {
+          key: "spt-identifier",
+          title: "Stripe SPT (Raw Identifier)",
+          blurb:
+            "The raw Stripe Shared PaymentToken id, charged through the recipient's Stripe network profile.",
+          body: {
+            rail: "spt",
+            provider: "stripe",
+            amount: { value: "5.00", currency },
+            credential: {
+              format: "identifier",
+              payload: { network_business_profile: "np_example" },
+            },
           },
         },
-      }],
-      ["mpp", {
-        key: "spt-mpp",
-        title: "Stripe MPP Authorization Credential",
-        blurb:
-          "An MPP credential wrapping the SPT (method stripe) for Authorization: Payment headers.",
-        body: {
-          rail: "spt",
-          provider: "stripe",
-          credential: {
-            format: "mpp",
-            payload: {
-              challenge: {
-                id: "ch_example1",
-                realm: "merchant.example",
-                method: "stripe",
-                intent: "charge",
-                request: base64UrlJson({
-                  amount: "500",
-                  currency: currency.toLowerCase(),
+      ],
+      [
+        "mpp",
+        {
+          key: "spt-mpp",
+          title: "Stripe MPP Authorization Credential",
+          blurb:
+            "An MPP credential wrapping the SPT (method stripe) for Authorization: Payment headers.",
+          body: {
+            rail: "spt",
+            provider: "stripe",
+            credential: {
+              format: "mpp",
+              payload: {
+                challenge: {
+                  id: "ch_example1",
+                  realm: "merchant.example",
+                  method: "stripe",
+                  intent: "charge",
+                  request: base64UrlJson({
+                    amount: "500",
+                    currency: currency.toLowerCase(),
+                    description: "Acme checkout",
+                    methodDetails: {
+                      networkId: "np_example",
+                      paymentMethodTypes: ["card", "link"],
+                    },
+                  }),
                   description: "Acme checkout",
-                  methodDetails: {
-                    networkId: "np_example",
-                    paymentMethodTypes: ["card", "link"],
-                  },
-                }),
-                description: "Acme checkout",
-                expires: challengeExpires,
+                  expires: challengeExpires,
+                },
               },
             },
           },
         },
-      }],
+      ],
     ];
     mints.push(
       ...definitions
@@ -184,12 +199,18 @@ export function errorDemosFor(allowance: Allowance, challengeExpires: string): M
   const spt = allowance.rails?.find((r) => r.rail === "spt");
   const railForAmountDemos =
     spt?.status === "active" && supports(spt, "identifier")
-      ? { rail: "spt", provider: "stripe", format: { format: "identifier", payload: { network_business_profile: "np_example" } } }
+      ? {
+          rail: "spt",
+          provider: "stripe",
+          format: { format: "identifier", payload: { network_business_profile: "np_example" } },
+        }
       : agentic?.status === "active" && agentic.provider && supports(agentic, "card")
         ? { rail: "agentic-token", provider: agentic.provider, format: { format: "card" } }
         : null;
 
-  const overdrawValue = (Number(allowance.amount_available?.value ?? allowance.amount?.value ?? "0") + 10).toFixed(2);
+  const overdrawValue = (
+    Number(allowance.amount_available?.value ?? allowance.amount?.value ?? "0") + 10
+  ).toFixed(2);
   const demos: MintDef[] = [];
 
   if (railForAmountDemos) {
@@ -326,10 +347,7 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
   // byte-identical across re-renders — replaying a key with the SAME body is
   // the demo, and a drifting expires would turn it into IDEMPOTENCY_CONFLICT.
   const [challengeExpires] = useState(() => new Date(Date.now() + 30 * 60 * 1000).toISOString());
-  const mints = useMemo(
-    () => mintsFor(allowance, challengeExpires),
-    [allowance, challengeExpires],
-  );
+  const mints = useMemo(() => mintsFor(allowance, challengeExpires), [allowance, challengeExpires]);
   const demos = useMemo(
     () => errorDemosFor(allowance, challengeExpires),
     [allowance, challengeExpires],
@@ -342,9 +360,8 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
 
       {mints.length === 0 && (
         <Callout tone="warning">
-          No rail on this allowance can mint right now. The agentic-token rail must be{" "}
-          <b>active</b> (verify it first); an spt rail is mintable as soon as it is{" "}
-          <b>active</b>.
+          No rail on this allowance can mint right now. The agentic-token rail must be <b>active</b>{" "}
+          (verify it first); an spt rail is mintable as soon as it is <b>active</b>.
         </Callout>
       )}
 
@@ -395,8 +412,8 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
           <summary className="cursor-pointer px-4 py-3.5 text-sm font-semibold text-ink-900 transition-colors hover:bg-ink-50">
             Error demos — fail on purpose
             <span className="mt-1 block text-xs font-normal leading-relaxed text-ink-500">
-              Pre-built bodies that exercise the mint error paths. Each failure renders the full
-              RFC 7807 problem in a toast and inline.
+              Pre-built bodies that exercise the mint error paths. Each failure renders the full RFC
+              7807 problem in a toast and inline.
             </span>
           </summary>
           <div className="space-y-4 border-t border-ink-200 bg-screen/20 p-4">
@@ -425,8 +442,8 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
         <code>CREDENTIAL_OUTCOME_UNKNOWN</code> commits the attempted amount to{" "}
         <code>amount_spent</code>. Reusing that idempotency key only replays the same terminal
         error; it cannot recover or re-mint. There is no credential reconcile or release endpoint,
-        and the spendable payload cannot be recovered. A new key starts a distinct mint attempt
-        and may spend again.
+        and the spendable payload cannot be recovered. A new key starts a distinct mint attempt and
+        may spend again.
       </Callout>
 
       <div className="flex items-center gap-2">
@@ -487,8 +504,7 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
             </ul>
           )}
           <p className="mt-2 text-xs text-ink-500">
-            Metadata only — the spendable values were returned once, at mint time, and never
-            again.
+            Metadata only — the spendable values were returned once, at mint time, and never again.
           </p>
         </div>
       )}
@@ -498,32 +514,49 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
 
 export function AllowanceSummary({ allowance }: { allowance: Allowance }) {
   return (
-    <div className="surface-shadow rounded-xl border border-ink-200 bg-surface p-4 sm:p-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <CopyChip value={allowance.id} />
-        <span className="rounded-md bg-ink-50 px-2 py-1 text-xs font-medium text-ink-600">
-          {allowance.status}
-        </span>
+    <div className="surface-shadow overflow-hidden rounded-xl border border-ink-200 bg-surface">
+      <div className="grid gap-4 border-b border-ink-200 bg-ink-50/45 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:p-5">
+        <div className="min-w-0">
+          <p className="mb-1.5 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
+            Allowance ID
+          </p>
+          <CopyChip value={allowance.id} />
+        </div>
+        <div className="sm:text-right">
+          <p className="mb-1.5 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
+            Status
+          </p>
+          <StatusPill status={allowance.status ?? "unknown"} />
+        </div>
       </div>
-      <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-        {(
-          [
-            ["amount", allowance.amount],
-            ["spent", allowance.amount_spent],
-            ["reserved", allowance.amount_reserved],
-            ["available", allowance.amount_available],
-          ] as const
-        ).map(([label, money]) => (
-          <div key={label} className="rounded-lg bg-ink-50 px-3 py-2.5">
-            <dt className="text-[11px] tracking-wide text-ink-500 uppercase">{label}</dt>
-            <dd className="mt-0.5 font-mono text-sm text-ink-950">
-              {money?.value ?? "—"} {money?.currency ?? ""}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      <div className="mt-4">
-        <RailChips rails={allowance.rails} />
+
+      <div className="space-y-5 p-4 sm:p-5">
+        <div>
+          <p className="mb-2 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
+            Balance
+          </p>
+          <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+            {(
+              [
+                ["amount", allowance.amount],
+                ["spent", allowance.amount_spent],
+                ["reserved", allowance.amount_reserved],
+                ["available", allowance.amount_available],
+              ] as const
+            ).map(([label, money]) => (
+              <div key={label} className="rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5">
+                <dt className="text-[11px] tracking-wide text-ink-500 uppercase">{label}</dt>
+                <dd className="mt-0.5 font-mono text-sm text-ink-950">
+                  {money?.value ?? "—"} {money?.currency ?? ""}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <div>
+          <p className="mb-2 text-[11px] font-medium tracking-wide text-ink-500 uppercase">Rails</p>
+          <RailChips rails={allowance.rails} />
+        </div>
       </div>
     </div>
   );

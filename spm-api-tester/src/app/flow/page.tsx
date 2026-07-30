@@ -102,7 +102,7 @@ function Flow() {
         />
       </div>
 
-      <div className="mx-auto max-w-[1040px] px-5 py-9 sm:px-8 sm:py-12 lg:px-10">
+      <div className="mx-auto max-w-[1180px] px-5 py-9 sm:px-8 sm:py-12 lg:px-10">
         {step === "card" && (
           <StepShell
             eyebrow="Step 1 · Card"
@@ -231,7 +231,11 @@ function StepShell({
           <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-accent uppercase">
             {eyebrow}
           </p>
-          <h1 id="step-heading" tabIndex={-1} className="text-3xl font-semibold outline-none sm:text-4xl">
+          <h1
+            id="step-heading"
+            tabIndex={-1}
+            className="text-3xl font-semibold outline-none sm:text-4xl"
+          >
             {title}
           </h1>
           <p className="mt-3 max-w-3xl text-base leading-relaxed text-ink-600">{lead}</p>
@@ -352,7 +356,11 @@ function PaymentMethodStep({
               const pm = result as PaymentMethod;
               dispatch({
                 type: "upsertPaymentMethod",
-                entry: { resource: pm, tokenId: tokenEntry.id, scenarioPan: tokenEntry.scenarioPan },
+                entry: {
+                  resource: pm,
+                  tokenId: tokenEntry.id,
+                  scenarioPan: tokenEntry.scenarioPan,
+                },
               });
               onCreated(pm);
             }}
@@ -367,8 +375,8 @@ function PaymentMethodStep({
             <Button onClick={onContinue}>Continue → Allowance</Button>
           ) : (
             <Callout tone="warning">
-              No rail is enabled yet — retry a failed or pending rail above, or start over with a different
-              card. An allowance needs at least one enabled rail.
+              No rail is enabled yet — retry a failed or pending rail above, or start over with a
+              different card. An allowance needs at least one enabled rail.
             </Callout>
           )}
         </>

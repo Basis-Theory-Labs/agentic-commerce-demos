@@ -145,7 +145,7 @@ export function RequestPanel({
 
   return (
     <div className="surface-shadow overflow-hidden rounded-xl border border-ink-200 bg-surface">
-      <div className="flex flex-wrap items-center gap-2.5 border-b border-ink-200 bg-ink-50 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2.5 border-b border-ink-200 bg-surface-raised px-4 py-3">
         <span
           className={`rounded-md px-2 py-1 font-mono text-[11px] font-semibold ${
             method === "GET"
@@ -176,16 +176,21 @@ export function RequestPanel({
 
       <div className="space-y-4 p-4 sm:p-5">
         {idempotency && (
-          <div>
-            <label className="mb-1.5 block text-xs font-medium tracking-wide text-ink-500 uppercase">
-              BT-IDEMPOTENCY-KEY
-            </label>
+          <section className="rounded-xl border border-ink-200 bg-ink-50/60 p-3.5 sm:p-4">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <label className="block text-xs font-medium tracking-wide text-ink-600 uppercase">
+                BT-IDEMPOTENCY-KEY
+              </label>
+              <span className="rounded-md border border-warning-border bg-warning-soft px-2 py-0.5 text-[10px] font-medium tracking-wide text-warning uppercase">
+                Create safety
+              </span>
+            </div>
             <div className="flex flex-wrap gap-2">
               <input
                 value={idemKey}
                 onChange={(e) => setIdemKey(e.target.value)}
                 spellCheck={false}
-                className="min-w-64 flex-1 rounded-lg border border-ink-300 bg-ink-50 px-3 py-2 font-mono text-xs text-ink-900 focus:border-accent focus:outline-none"
+                className="min-w-64 flex-1 rounded-lg border border-ink-300 bg-screen/70 px-3 py-2 font-mono text-xs text-ink-900 focus:border-accent focus:outline-none"
               />
               <Button variant="ghost" small onClick={() => setIdemKey(crypto.randomUUID())}>
                 Regenerate
@@ -206,7 +211,7 @@ export function RequestPanel({
               {idempotencyNote ??
                 "Use Replay last key to resend with the previous key on purpose — same body replays, edited body 409s with IDEMPOTENCY_CONFLICT."}
             </p>
-          </div>
+          </section>
         )}
 
         {defaultBody !== undefined && (
@@ -214,12 +219,6 @@ export function RequestPanel({
         )}
 
         {children}
-
-        <div className="flex items-center gap-3 pt-1">
-          <Button onClick={send} loading={sending} loadingLabel={loadingLabel} disabled={disabled}>
-            {sendLabel}
-          </Button>
-        </div>
 
         {problem && (
           <div
@@ -229,9 +228,7 @@ export function RequestPanel({
             <div className="font-medium text-error">{problem.title ?? "Request failed"}</div>
             {problem.detail && <div className="text-ink-700">{problem.detail}</div>}
             {problem.instance && (
-              <div className="font-mono text-[11px] break-all text-ink-500">
-                {problem.instance}
-              </div>
+              <div className="font-mono text-[11px] break-all text-ink-500">{problem.instance}</div>
             )}
             {problem.errors &&
               Object.entries(problem.errors).map(([field, messages]) => (
@@ -248,6 +245,12 @@ export function RequestPanel({
             </div>
           </div>
         )}
+
+        <div className="-mx-4 -mb-4 flex items-center gap-3 border-t border-ink-200 bg-ink-50/45 px-4 py-3.5 sm:-mx-5 sm:-mb-5 sm:px-5 sm:py-4">
+          <Button onClick={send} loading={sending} loadingLabel={loadingLabel} disabled={disabled}>
+            {sendLabel}
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -38,6 +38,10 @@ export function PaymentMethodCard({
   const failedRails = (pm.rails ?? []).filter((rail: Rail) =>
     ["pending", "error"].includes(rail.status),
   );
+  const hasProviderErrors = (pm.rails ?? []).some(
+    (rail: Rail) => rail.status === "error" || rail.error != null,
+  );
+  const hasActions = failedRails.length > 0 || hasProviderErrors || allowDelete;
 
   const retryKey = (rail: Rail) => `${rail.rail}:${rail.provider}`;
   const setRetryingFor = (key: string, active: boolean) => {
@@ -114,64 +118,85 @@ export function PaymentMethodCard({
   };
 
   return (
-    <div className="surface-shadow rounded-xl border border-ink-200 bg-surface p-4 sm:p-5">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <CopyChip value={pm.id} />
-        <span className="font-mono text-xs text-ink-600">
-          {pm.card?.brand ?? "card"} •••• {pm.card?.last4}
-          {pm.card?.expiration_month != null &&
-            `  ${pm.card.expiration_month}/${pm.card.expiration_year}`}
-        </span>
+    <div className="surface-shadow overflow-hidden rounded-xl border border-ink-200 bg-surface">
+      <div className="grid gap-4 border-b border-ink-200 bg-ink-50/45 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:p-5">
+        <div className="min-w-0">
+          <p className="mb-1.5 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
+            Payment method ID
+          </p>
+          <CopyChip value={pm.id} />
+        </div>
+        <div className="sm:text-right">
+          <p className="mb-1.5 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
+            Card
+          </p>
+          <span className="font-mono text-sm text-ink-800">
+            {pm.card?.brand ?? "card"} •••• {pm.card?.last4}
+            {pm.card?.expiration_month != null &&
+              `  ${pm.card.expiration_month}/${pm.card.expiration_year}`}
+          </span>
+        </div>
       </div>
-      <RailChips rails={pm.rails} />
-      <div className="mt-3">
+
+      <div className="space-y-4 p-4 sm:p-5">
+        <div>
+          <p className="mb-2 text-[11px] font-medium tracking-wide text-ink-500 uppercase">Rails</p>
+          <RailChips rails={pm.rails} />
+        </div>
         <ScenarioChip scenarioPan={entry.scenarioPan} stage="payment-method" />
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        {failedRails.map((rail) => (
-          <Button
-            key={retryKey(rail)}
-            variant="ghost"
-            small
-            loading={retrying.has(retryKey(rail))}
-            loadingLabel="Retrying…"
-            disabled={deleting}
-            onClick={() => retryRail(rail)}
-          >
-            Retry {rail.rail} · {rail.provider}
-          </Button>
-        ))}
-        <Button variant="ghost" small loading={loadingErrors} onClick={loadErrors}>
-          View provider errors
-        </Button>
-        {allowDelete &&
-          (confirmingDelete ? (
-            <>
-              <span className="text-xs text-error">
-                Deleting cancels every allowance on this payment method.
-              </span>
-              <Button variant="destructive" small loading={deleting} onClick={remove}>
-                Confirm delete
-              </Button>
-              <Button variant="ghost" small onClick={() => setConfirmingDelete(false)}>
-                Keep it
-              </Button>
-            </>
-          ) : (
+      {hasActions && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-ink-200 bg-screen/25 px-4 py-3.5 sm:px-5">
+          <span className="mr-1 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
+            Actions
+          </span>
+          {failedRails.map((rail) => (
             <Button
-              variant="destructive"
+              key={retryKey(rail)}
+              variant="ghost"
               small
-              disabled={retrying.size > 0}
-              onClick={() => setConfirmingDelete(true)}
+              loading={retrying.has(retryKey(rail))}
+              loadingLabel="Retrying…"
+              disabled={deleting}
+              onClick={() => retryRail(rail)}
             >
-              Delete
+              Retry {rail.rail} · {rail.provider}
             </Button>
           ))}
-      </div>
+          {hasProviderErrors && (
+            <Button variant="ghost" small loading={loadingErrors} onClick={loadErrors}>
+              View provider errors
+            </Button>
+          )}
+          {allowDelete &&
+            (confirmingDelete ? (
+              <>
+                <span className="text-xs text-error">
+                  Deleting cancels every allowance on this payment method.
+                </span>
+                <Button variant="destructive" small loading={deleting} onClick={remove}>
+                  Confirm delete
+                </Button>
+                <Button variant="ghost" small onClick={() => setConfirmingDelete(false)}>
+                  Keep it
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="destructive"
+                small
+                disabled={retrying.size > 0}
+                onClick={() => setConfirmingDelete(true)}
+              >
+                Delete
+              </Button>
+            ))}
+        </div>
+      )}
 
       {errors && (
-        <div className="mt-3 rounded-lg border border-ink-200 bg-ink-50 p-3 text-xs">
+        <div className="border-t border-ink-200 bg-ink-50 p-4 text-xs sm:p-5">
           <ProviderErrorList
             page={errors}
             emptyLabel="No provider errors recorded for this payment method."

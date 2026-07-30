@@ -99,8 +99,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {/* bottom-20 on narrow viewports keeps the inspector button reachable */}
-      <div className="pointer-events-none fixed bottom-20 left-1/2 z-50 flex w-full max-w-md -translate-x-1/2 flex-col gap-2 px-4 sm:bottom-4">
+      <div className="pointer-events-none fixed top-[152px] right-4 left-4 z-[60] flex flex-col items-end gap-2 sm:left-auto sm:w-full sm:max-w-md 2xl:right-[576px]">
         {/* Two live regions so successes stay polite and errors interrupt. */}
         <div aria-live="polite" className="sr-only">
           {toasts
@@ -139,12 +138,12 @@ function Toast({
   onPause: () => void;
   onResume: () => void;
 }) {
-  const border =
+  const tone =
     toast.kind === "error"
-      ? "border-error"
+      ? "border-error-border bg-error-soft text-error"
       : toast.kind === "success"
-        ? "border-success"
-        : "border-ink-300";
+        ? "border-success-border bg-success-soft text-success"
+        : "border-info-border bg-info-soft text-info";
   const fieldErrors = toast.problem?.errors;
   const providerCorrelation = toast.problem?.debug?.provider_correlation;
 
@@ -158,14 +157,17 @@ function Toast({
       onMouseLeave={onResume}
       onFocus={onPause}
       onBlur={onResume}
-      className={`pointer-events-auto rounded-xl border ${border} bg-surface p-4 text-sm shadow-2xl`}
+      className={`pointer-events-auto w-full rounded-[4px] border ${tone} p-2.5 shadow-2xl backdrop-blur-xl`}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex min-h-9 items-start gap-3">
+        <ToastIcon kind={toast.kind} />
         <div className="min-w-0 flex-1">
-          <div className="font-medium text-ink-950">{toast.title}</div>
-          {toast.detail && <div className="mt-1 text-xs text-ink-600">{toast.detail}</div>}
+          <div className="text-xs leading-[1.4] font-medium">{toast.title}</div>
+          {toast.detail && (
+            <div className="mt-0.5 text-xs leading-[1.4] text-ink-700">{toast.detail}</div>
+          )}
           {toast.problem?.instance && (
-            <div className="mt-1 font-mono text-[11px] break-all text-ink-500">
+            <div className="mt-1 font-mono text-[11px] break-all text-ink-600">
               {toast.problem.instance}
             </div>
           )}
@@ -178,7 +180,7 @@ function Toast({
               ))}
             </ul>
           )}
-          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {toast.problem?.status !== undefined && (
               <span className="border border-ink-200 bg-ink-50 px-1.5 py-0.5 font-mono text-[11px] text-ink-700">
                 HTTP {toast.problem.status}
@@ -205,14 +207,51 @@ function Toast({
         <button
           onClick={onDismiss}
           aria-label="Dismiss notification"
-          className="shrink-0 p-1 text-ink-400 hover:text-ink-900"
+          className="shrink-0 rounded-sm p-0.5 text-current opacity-60 transition-opacity hover:opacity-100"
         >
-          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
     </div>
+  );
+}
+
+function ToastIcon({ kind }: { kind: ToastData["kind"] }) {
+  return (
+    <svg
+      aria-hidden
+      className="mt-0.5 h-5 w-5 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      strokeWidth={1.8}
+    >
+      {kind === "success" ? (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="m8 12 2.5 2.5L16 9" />
+        </>
+      ) : kind === "error" ? (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="m9 9 6 6m0-6-6 6" />
+        </>
+      ) : (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path strokeLinecap="round" d="M12 10.5v5" />
+          <circle cx="12" cy="7.5" r=".75" fill="currentColor" stroke="none" />
+        </>
+      )}
+    </svg>
   );
 }
 

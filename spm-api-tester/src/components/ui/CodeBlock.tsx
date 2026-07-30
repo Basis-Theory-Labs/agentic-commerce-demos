@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { HighlightedCode, type CodeLanguage } from "@/components/ui/HighlightedCode";
 
-// Collapsible code snippet with a language label and copy button. All code
-// rendered through textContent — no innerHTML, no highlighting dependency.
+// Collapsible code snippet with a language label and copy button. Highlighted
+// tokens are rendered as React text nodes — no injected HTML.
 export function CodeBlock({
   title,
   language = "js",
@@ -11,7 +12,7 @@ export function CodeBlock({
   defaultOpen = false,
 }: {
   title: string;
-  language?: string;
+  language?: CodeLanguage;
   code: string;
   defaultOpen?: boolean;
 }) {
@@ -49,8 +50,8 @@ export function CodeBlock({
         >
           {copied ? "Copied" : "Copy"}
         </button>
-        <pre className="overflow-x-auto bg-screen/45 p-4 font-mono text-xs leading-relaxed text-ink-800">
-          {code}
+        <pre className="overflow-x-auto bg-screen/45 p-5 pr-20 font-mono text-[13px] leading-[1.7]">
+          <HighlightedCode code={code} language={language} />
         </pre>
       </div>
     </details>

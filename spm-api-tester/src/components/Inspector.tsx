@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useApiLog, type CallEntry, type CallSource } from "@/lib/apiLog";
 import { CopyChip } from "@/components/ui/CopyChip";
+import { HighlightedCode } from "@/components/ui/HighlightedCode";
 
 // Inspector: full wire details for tester-owned browser/proxy calls plus
 // sanitized Elements activity and SDK lifecycle events, newest first. Source
@@ -40,19 +41,30 @@ export default function Inspector() {
     <>
       <aside
         aria-label="API inspector"
-        className="sticky top-18 hidden h-[calc(100vh-4.5rem)] min-h-[560px] flex-col border-l border-ink-200 bg-surface xl:flex"
+        className="sticky top-18 hidden h-[calc(100vh-4.5rem)] min-h-[560px] flex-col border-l border-ink-200 bg-surface 2xl:flex"
       >
         <InspectorPanel entries={entries} clear={clear} />
       </aside>
 
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground shadow-xl transition-colors hover:bg-accent-hover xl:hidden"
+        className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground shadow-xl transition-colors hover:bg-accent-hover 2xl:hidden"
         aria-expanded={open}
         aria-label={`${open ? "Hide" : "Show"} API inspector (${entries.length} activity entries)`}
       >
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        <svg
+          className="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+          aria-hidden
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+          />
         </svg>
         {open ? "Hide" : "Inspector"}
         {entries.length > 0 && (
@@ -66,7 +78,7 @@ export default function Inspector() {
         <button
           type="button"
           aria-label="Close API inspector"
-          className="fixed inset-0 z-40 rounded-none bg-black/60 backdrop-blur-sm xl:hidden"
+          className="fixed inset-0 z-40 rounded-none bg-black/60 backdrop-blur-sm 2xl:hidden"
           onClick={() => setOpen(false)}
         />
       )}
@@ -77,7 +89,7 @@ export default function Inspector() {
         // The panel is only translated off-screen; inert keeps its controls
         // out of the tab order while hidden.
         inert={!open}
-        className={`fixed top-0 right-0 z-50 flex h-full w-full flex-col border-l border-ink-200 bg-surface shadow-2xl transition-transform duration-200 ease-out sm:w-[540px] xl:hidden ${
+        className={`fixed top-0 right-0 z-50 flex h-full w-full flex-col border-l border-ink-200 bg-surface shadow-2xl transition-transform duration-200 ease-out sm:w-[560px] 2xl:hidden ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -106,7 +118,9 @@ function InspectorPanel({
               {entries.length}
             </span>
           </div>
-          <p className="mt-0.5 text-xs text-ink-500">Newest first · select a call for wire details</p>
+          <p className="mt-0.5 text-xs text-ink-500">
+            Newest first · select a call for wire details
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {entries.length > 0 && (
@@ -167,13 +181,11 @@ function InspectorPanel({
             </p>
           </div>
         ) : (
-          [...entries].reverse().map((entry, reverseIndex) => (
-            <InspectorRow
-              key={entry.id}
-              entry={entry}
-              ordinal={entries.length - reverseIndex}
-            />
-          ))
+          [...entries]
+            .reverse()
+            .map((entry, reverseIndex) => (
+              <InspectorRow key={entry.id} entry={entry} ordinal={entries.length - reverseIndex} />
+            ))
         )}
       </div>
     </>
@@ -183,11 +195,7 @@ function InspectorPanel({
 function InspectorRow({ entry, ordinal }: { entry: CallEntry; ordinal: number }) {
   const [expanded, setExpanded] = useState(false);
   const statusClass =
-    entry.status === undefined
-      ? "text-ink-500"
-      : entry.ok
-        ? "text-success"
-        : "text-error";
+    entry.status === undefined ? "text-ink-500" : entry.ok ? "text-success" : "text-error";
 
   return (
     <div className="surface-shadow overflow-hidden rounded-xl border border-ink-200 bg-surface text-sm">
@@ -206,6 +214,11 @@ function InspectorRow({ entry, ordinal }: { entry: CallEntry; ordinal: number })
             >
               {SOURCE_LABEL[entry.source]}
             </span>
+            {entry.source === "sdk" && (
+              <span className="rounded-md border border-info-border bg-info-soft px-2 py-0.5 text-xs font-medium tracking-wide text-info uppercase">
+                event
+              </span>
+            )}
             {entry.tag && (
               <span className="rounded-md border border-ink-200 bg-ink-50 px-2 py-0.5 font-mono text-xs text-ink-700">
                 {entry.tag}
@@ -287,13 +300,15 @@ function Detail({ label, value, pre }: { label: string; value: string; pre?: boo
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
-      <div
-        className={`max-h-72 overflow-auto rounded-lg border border-ink-200 bg-surface px-3 py-2.5 font-mono text-xs text-ink-900 ${
-          pre ? "whitespace-pre-wrap" : "break-all"
-        }`}
-      >
-        {value}
-      </div>
+      {pre ? (
+        <pre className="max-h-96 overflow-auto rounded-lg border border-ink-200 bg-screen/65 px-3.5 py-3 font-mono text-[12px] leading-relaxed whitespace-pre">
+          <HighlightedCode code={value} language="json" />
+        </pre>
+      ) : (
+        <div className="max-h-72 overflow-auto rounded-lg border border-ink-200 bg-screen/65 px-3.5 py-3 font-mono text-xs break-all text-ink-800">
+          {value}
+        </div>
+      )}
     </div>
   );
 }

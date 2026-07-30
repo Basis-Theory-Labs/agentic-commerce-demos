@@ -17,6 +17,7 @@ import { VerifyPanel } from "@/components/VerifyPanel";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { CopyChip } from "@/components/ui/CopyChip";
+import { HighlightedCode } from "@/components/ui/HighlightedCode";
 import { callAgentic } from "@/lib/agenticClient";
 import { useApiLog } from "@/lib/apiLog";
 import { scenarioForAllowance, useSession, type AllowanceEntry } from "@/lib/session";
@@ -42,7 +43,7 @@ function Workbench() {
   ] as const;
 
   return (
-    <main className="mx-auto max-w-[1120px] px-5 py-10 pb-24 sm:px-8 lg:px-10 lg:py-12">
+    <main className="mx-auto max-w-[1240px] px-5 py-10 pb-24 sm:px-8 lg:px-10 lg:py-12">
       <header className="max-w-3xl">
         <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-accent uppercase">
           Resource workspace
@@ -265,7 +266,10 @@ function AllowancesSection() {
               expires_at: expiresAt,
             }}
             sendLabel="Create Allowance"
-            successToast={(result) => ({ title: "Allowance created", id: (result as Allowance).id })}
+            successToast={(result) => ({
+              title: "Allowance created",
+              id: (result as Allowance).id,
+            })}
             onSuccess={(result) =>
               dispatch({
                 type: "upsertAllowance",
@@ -319,7 +323,10 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
         logger,
       );
       cancelled.current = true;
-      dispatch({ type: "upsertAllowance", entry: { ...entry, resource: { ...allowance, status: "cancelled" } } });
+      dispatch({
+        type: "upsertAllowance",
+        entry: { ...entry, resource: { ...allowance, status: "cancelled" } },
+      });
       toast.success("Allowance cancelled — no new credentials can be minted from it");
     } catch (error) {
       toast.error(error);
@@ -340,9 +347,9 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
         <div className="mt-3 space-y-3">
           <Callout>
             Updates are provider-first: the network-side mandate changes before the same values
-            commit locally, and mints are blocked while the update is in flight. Send any subset
-            of <code>amount</code>, <code>description</code>, <code>expires_at</code> — unknown
-            keys are rejected.
+            commit locally, and mints are blocked while the update is in flight. Send any subset of{" "}
+            <code>amount</code>, <code>description</code>, <code>expires_at</code> — unknown keys
+            are rejected.
           </Callout>
           <RequestPanel
             method="PATCH"
@@ -358,7 +365,10 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
             sendLabel="PATCH Allowance"
             successToast={() => ({ title: "Allowance updated" })}
             onSuccess={(result) =>
-              dispatch({ type: "upsertAllowance", entry: { ...entry, resource: result as Allowance } })
+              dispatch({
+                type: "upsertAllowance",
+                entry: { ...entry, resource: result as Allowance },
+              })
             }
           />
         </div>
@@ -457,13 +467,7 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
 
 /* ── verification & credentials ───────────────────────────────────────── */
 
-function AllowancePicker({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (id: string) => void;
-}) {
+function AllowancePicker({ value, onChange }: { value: string; onChange: (id: string) => void }) {
   const { state } = useSession();
   if (state.allowances.length === 0) return null;
   return (
@@ -535,11 +539,11 @@ function CredentialsSection() {
         <>
           <AllowancePicker value={effectiveId} onChange={setAlwId} />
           <MintPanel
-            key={effectiveId}
+            key={`mint-${effectiveId}`}
             entry={entry}
             scenarioPan={scenarioForAllowance(state, effectiveId)}
           />
-          <CredentialLookup key={effectiveId} allowanceId={effectiveId} />
+          <CredentialLookup key={`lookup-${effectiveId}`} allowanceId={effectiveId} />
         </>
       ) : (
         <Callout>No allowances in this session yet — create or import one above.</Callout>
@@ -596,7 +600,7 @@ function CredentialLookup({ allowanceId }: { allowanceId: string }) {
       </div>
       {fetchedMeta && (
         <pre className="mt-3 max-h-64 overflow-auto rounded-lg border border-ink-200 bg-ink-50 p-3 font-mono text-xs">
-          {JSON.stringify(fetchedMeta, null, 2)}
+          <HighlightedCode code={JSON.stringify(fetchedMeta, null, 2)} language="json" />
         </pre>
       )}
     </div>

@@ -76,7 +76,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
   if (setup.needsSetup) {
-    return <SetupScreen missingPrivate={setup.missingPrivate} missingPublic={setup.missingPublic} />;
+    return (
+      <SetupScreen missingPrivate={setup.missingPrivate} missingPublic={setup.missingPublic} />
+    );
   }
 
   const navClass = (href: string) =>
@@ -89,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-screen">
       <header className="border-b border-ink-200 bg-screen/95 md:sticky md:top-0 md:z-50 md:backdrop-blur-xl">
-        <div className="mx-auto flex min-h-18 max-w-[1680px] flex-wrap items-center gap-x-6 gap-y-3 px-5 py-3 lg:px-8">
+        <div className="flex min-h-18 w-full flex-wrap items-center gap-x-6 gap-y-3 px-5 py-3 lg:px-8">
           <Link href="/" className="group flex shrink-0 items-center gap-3">
             <span
               aria-hidden
@@ -149,7 +151,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <div className="mx-auto grid max-w-[1680px] xl:grid-cols-[minmax(0,1fr)_480px]">
+      <div className="grid w-full 2xl:grid-cols-[minmax(0,1fr)_560px]">
         <div className="min-w-0">{children}</div>
         <Inspector />
       </div>

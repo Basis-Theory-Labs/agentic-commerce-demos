@@ -33,15 +33,45 @@ const MOCK_CVC = "123";
 // Hex literals, not CSS custom properties: the CardElement renders inside a
 // cross-origin Elements iframe that cannot read this page's variables. The
 // values mirror the customer-portal foreground / muted / danger colors.
-const ELEMENT_STYLE = {
-  base: {
-    fontSize: "15px",
+const ELEMENT_BASE_STYLE = {
+  fontSize: "16px",
+  lineHeight: "24px",
+  color: "#e4e4e7",
+  backgroundColor: "#17171a",
+  fontFamily: "Inter, system-ui, sans-serif",
+  padding: "11px 12px",
+  "::placeholder": { color: "#717179" },
+  ":read-only": {
     color: "#e4e4e7",
     backgroundColor: "#17171a",
-    fontFamily: "system-ui, sans-serif",
-    "::placeholder": { color: "#717179" },
   },
-  invalid: { color: "#fda4af" },
+  ":disabled": {
+    color: "#a1a1aa",
+    backgroundColor: "#17171a",
+  },
+};
+
+const ELEMENT_STYLE = {
+  container: {
+    backgroundColor: "#17171a",
+  },
+  base: {
+    ...ELEMENT_BASE_STYLE,
+  },
+  empty: {
+    ...ELEMENT_BASE_STYLE,
+  },
+  complete: {
+    ...ELEMENT_BASE_STYLE,
+  },
+  invalid: {
+    ...ELEMENT_BASE_STYLE,
+    color: "#fda4af",
+    ":read-only": {
+      color: "#fda4af",
+      backgroundColor: "#17171a",
+    },
+  },
 };
 
 export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: string) => void }) {
@@ -56,9 +86,7 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
   const isTest = config?.tenantType === "test";
   const isProduction = !isTest;
   const [tab, setTab] = useState<"mock" | "yours">(isTest ? "mock" : "yours");
-  const [selected, setSelected] = useState<CardScenario | null>(
-    isTest ? CARD_SCENARIOS[0] : null,
-  );
+  const [selected, setSelected] = useState<CardScenario | null>(isTest ? CARD_SCENARIOS[0] : null);
   const [complete, setComplete] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -261,9 +289,7 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
                   <div className="mt-2 font-mono text-sm font-semibold text-ink-950">
                     {scenario.pan.replace(/(\d{4})/g, "$1 ").trim()}
                   </div>
-                  <div className="mt-1.5 leading-relaxed text-ink-600">
-                    {scenario.description}
-                  </div>
+                  <div className="mt-1.5 leading-relaxed text-ink-600">{scenario.description}</div>
                 </button>
               ))}
             </div>
@@ -275,8 +301,10 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
           <label className="mb-1.5 block text-xs font-medium tracking-wide text-ink-500 uppercase">
             Card
           </label>
-          <div className="rounded-lg border border-ink-300 bg-ink-50 px-3.5 py-3">
-            {tab === "mock" && selected && mockValue ? (
+          <div className="flex min-h-14 items-center overflow-hidden rounded-xl border border-ink-300 bg-surface-raised p-1 transition-colors focus-within:border-accent [&>*]:w-full">
+            {!bt ? (
+              <p className="px-3 py-2 text-sm text-ink-500">Loading secure card field…</p>
+            ) : tab === "mock" && selected && mockValue ? (
               // Remount per selection so the v2 static `value` option applies
               // at element creation — the most reliable prefill path.
               <CardElement
@@ -286,6 +314,7 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
                 ref={cardRef}
                 value={mockValue}
                 readOnly
+                iconPosition="none"
                 style={ELEMENT_STYLE}
               />
             ) : tab === "yours" ? (
@@ -294,6 +323,7 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
                 bt={bt}
                 ref={cardRef}
                 onChange={(e) => setComplete(!!e?.complete)}
+                iconPosition="none"
                 style={ELEMENT_STYLE}
               />
             ) : (
@@ -307,8 +337,8 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
         {tab === "yours" && (
           <Callout>
             This form is a Basis Theory Elements component: the card data goes from the browser
-            directly to the vault with the public key. It never touches this app’s server — for
-            this path, that claim is literally true.
+            directly to the vault with the public key. It never touches this app’s server — for this
+            path, that claim is literally true.
           </Callout>
         )}
 
