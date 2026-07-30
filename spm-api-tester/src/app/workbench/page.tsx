@@ -1,8 +1,8 @@
 "use client";
 
 // The freeform mode: one section per resource, no ordering imposed. Create as
-// many payment methods and allowances as you want (fresh idempotency key per
-// create), PATCH and cancel allowances, retry rails, mint every format, and
+// many payment methods and allowances as you want, opt into idempotent
+// requests, PATCH and cancel allowances, retry rails, mint every format, and
 // import external ids into the session registry.
 
 import { useRef, useState } from "react";
@@ -43,7 +43,7 @@ function Workbench() {
   ] as const;
 
   return (
-    <main className="mx-auto max-w-[1240px] px-5 py-10 pb-24 sm:px-8 lg:px-10 lg:py-12">
+    <main className="mx-auto max-w-[1240px] px-5 py-8 pb-20 sm:px-8 lg:px-10 lg:py-10">
       <header className="max-w-3xl">
         <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-accent uppercase">
           Resource workspace
@@ -57,13 +57,13 @@ function Workbench() {
 
       <nav
         aria-label="Workbench resources"
-        className="my-8 flex gap-1 overflow-x-auto rounded-xl border border-ink-200 bg-surface p-1.5"
+        className="my-6 flex gap-1 overflow-x-auto rounded-xl border border-ink-200 bg-surface p-1"
       >
         {resources.map(([id, label], index) => (
           <a
             key={id}
             href={`#${id}`}
-            className="flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-50 hover:text-ink-900"
+            className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-50 hover:text-ink-900"
           >
             <span className="font-mono text-xs text-ink-400">
               {String(index + 1).padStart(2, "0")}
@@ -73,7 +73,7 @@ function Workbench() {
         ))}
       </nav>
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         <TokensSection />
         <PaymentMethodsSection />
         <AllowancesSection />
@@ -101,11 +101,11 @@ function Section({
       aria-label={title}
       className="surface-shadow scroll-mt-28 overflow-hidden rounded-2xl border border-ink-200 bg-surface"
     >
-      <div className="border-b border-ink-200 px-5 py-5 sm:px-6">
+      <div className="border-b border-ink-200 px-5 py-4">
         <h2 className="text-xl font-semibold">{title}</h2>
         <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-ink-600">{lead}</p>
       </div>
-      <div className="space-y-5 p-5 sm:p-6">{children}</div>
+      <div className="space-y-4 p-4 sm:p-5">{children}</div>
     </section>
   );
 }
@@ -155,7 +155,7 @@ function PaymentMethodsSection() {
     <Section
       id="payment-methods"
       title="Payment Methods"
-      lead="Create from any session token or a pasted token id. Each create gets a fresh idempotency key; rails provision in parallel."
+      lead="Create from any session token or a pasted token id. Add an idempotency key when you want replay protection; rails provision in parallel."
     >
       {state.tokens.length > 0 ? (
         <>

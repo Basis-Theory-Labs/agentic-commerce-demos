@@ -18,7 +18,7 @@ export interface RequestPanelProps {
   auth: AuthMode;
   /** Omit for body-less requests. */
   defaultBody?: unknown;
-  /** Show an editable BT-IDEMPOTENCY-KEY field with a regenerate button. */
+  /** Let the user opt into an editable BT-IDEMPOTENCY-KEY header. */
   idempotency?: boolean;
   /** Note rendered under the key field (the replay teachable moment). */
   idempotencyNote?: string;
@@ -59,6 +59,7 @@ export function RequestPanel({
   );
   const [body, setBody] = useState(defaultJson);
   const [idemKey, setIdemKey] = useState(() => crypto.randomUUID());
+  const [includeIdempotencyKey, setIncludeIdempotencyKey] = useState(false);
   // After a successful send the key regenerates (fresh key per create) and
   // the used key is kept so "Replay last key" can demonstrate server-side
   // replay semantics on purpose.
@@ -91,11 +92,10 @@ export function RequestPanel({
       return;
     }
     const usedKey = idemKey.trim();
-    if (idempotency && !usedKey) {
+    if (idempotency && includeIdempotencyKey && !usedKey) {
       setProblem({
-        title: "BT-IDEMPOTENCY-KEY is required by this tester",
-        detail:
-          "The API permits keyless creates, but every retry would be a new operation. Regenerate a key before sending.",
+        title: "BT-IDEMPOTENCY-KEY cannot be empty",
+        detail: "Enter a value, regenerate the key, or turn idempotency off for this request.",
       });
       return;
     }
@@ -110,11 +110,11 @@ export function RequestPanel({
           body: parsed,
           auth,
           tag,
-          idempotencyKey: idempotency ? usedKey : undefined,
+          idempotencyKey: idempotency && includeIdempotencyKey ? usedKey : undefined,
         },
         logger,
       );
-      if (idempotency) {
+      if (idempotency && includeIdempotencyKey) {
         setLastSentKey(usedKey);
         setIdemKey(crypto.randomUUID());
       }
@@ -174,43 +174,80 @@ export function RequestPanel({
         </span>
       </div>
 
-      <div className="space-y-4 p-4 sm:p-5">
+      <div className="space-y-3.5 p-4">
         {idempotency && (
-          <section className="rounded-xl border border-ink-200 bg-ink-50/60 p-3.5 sm:p-4">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <label className="block text-xs font-medium tracking-wide text-ink-600 uppercase">
-                BT-IDEMPOTENCY-KEY
-              </label>
-              <span className="rounded-md border border-warning-border bg-warning-soft px-2 py-0.5 text-[10px] font-medium tracking-wide text-warning uppercase">
-                Create safety
-              </span>
+          <section
+            className={`overflow-hidden rounded-xl border transition-colors ${
+              includeIdempotencyKey
+                ? "border-accent/35 bg-accent-soft/35"
+                : "border-ink-200 bg-ink-50/45"
+            }`}
+          >
+            <div className="flex items-center justify-between gap-4 px-3.5 py-3 sm:px-4">
+              <div>
+                <p className="text-xs font-semibold text-ink-900">Add idempotency key</p>
+                <p className="mt-0.5 text-xs text-ink-500">
+                  Include <code>BT-IDEMPOTENCY-KEY</code> with this request.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={includeIdempotencyKey}
+                aria-label="Include BT-IDEMPOTENCY-KEY"
+                disabled={sending}
+                onClick={() => {
+                  setIncludeIdempotencyKey((included) => !included);
+                  setProblem(null);
+                }}
+                className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                  includeIdempotencyKey ? "border-accent bg-accent" : "border-ink-300 bg-ink-100"
+                }`}
+              >
+                <span
+                  aria-hidden
+                  className={`absolute top-0.5 left-0.5 h-4.5 w-4.5 rounded-full shadow-sm transition-transform ${
+                    includeIdempotencyKey
+                      ? "translate-x-5 bg-accent-foreground"
+                      : "translate-x-0 bg-ink-500"
+                  }`}
+                />
+              </button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <input
-                value={idemKey}
-                onChange={(e) => setIdemKey(e.target.value)}
-                spellCheck={false}
-                className="min-w-64 flex-1 rounded-lg border border-ink-300 bg-screen/70 px-3 py-2 font-mono text-xs text-ink-900 focus:border-accent focus:outline-none"
-              />
-              <Button variant="ghost" small onClick={() => setIdemKey(crypto.randomUUID())}>
-                Regenerate
-              </Button>
-              {lastSentKey && (
-                <Button
-                  variant="ghost"
-                  small
-                  onClick={() => setIdemKey(lastSentKey)}
-                  title="Restore the key from the last successful send — resending then demonstrates the server's replay behavior"
-                >
-                  Replay last key
-                </Button>
-              )}
-            </div>
-            <p className="mt-2 max-w-3xl text-xs leading-relaxed text-ink-500">
-              A fresh key is generated after each successful send.{" "}
-              {idempotencyNote ??
-                "Use Replay last key to resend with the previous key on purpose — same body replays, edited body 409s with IDEMPOTENCY_CONFLICT."}
-            </p>
+            {includeIdempotencyKey && (
+              <div className="border-t border-accent/20 px-3.5 py-3 sm:px-4">
+                <label className="mb-2 block text-[10px] font-medium tracking-wide text-ink-500 uppercase">
+                  BT-IDEMPOTENCY-KEY
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    value={idemKey}
+                    onChange={(e) => setIdemKey(e.target.value)}
+                    spellCheck={false}
+                    aria-label="BT-IDEMPOTENCY-KEY value"
+                    className="min-w-64 flex-1 rounded-lg border border-ink-300 bg-screen/70 px-3 py-2 font-mono text-xs text-ink-900 focus:border-accent focus:outline-none"
+                  />
+                  <Button variant="ghost" small onClick={() => setIdemKey(crypto.randomUUID())}>
+                    Regenerate
+                  </Button>
+                  {lastSentKey && (
+                    <Button
+                      variant="ghost"
+                      small
+                      onClick={() => setIdemKey(lastSentKey)}
+                      title="Restore the key from the last successful send — resending then demonstrates the server's replay behavior"
+                    >
+                      Replay last key
+                    </Button>
+                  )}
+                </div>
+                <p className="mt-2 max-w-3xl text-xs leading-relaxed text-ink-500">
+                  A fresh key is generated after each successful send.{" "}
+                  {idempotencyNote ??
+                    "Use Replay last key to resend with the previous key on purpose — same body replays, edited body 409s with IDEMPOTENCY_CONFLICT."}
+                </p>
+              </div>
+            )}
           </section>
         )}
 
@@ -246,7 +283,7 @@ export function RequestPanel({
           </div>
         )}
 
-        <div className="-mx-4 -mb-4 flex items-center gap-3 border-t border-ink-200 bg-ink-50/45 px-4 py-3.5 sm:-mx-5 sm:-mb-5 sm:px-5 sm:py-4">
+        <div className="-mx-4 -mb-4 flex items-center gap-3 border-t border-ink-200 bg-ink-50/45 px-4 py-3">
           <Button onClick={send} loading={sending} loadingLabel={loadingLabel} disabled={disabled}>
             {sendLabel}
           </Button>

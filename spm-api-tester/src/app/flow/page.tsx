@@ -102,7 +102,7 @@ function Flow() {
         />
       </div>
 
-      <div className="mx-auto max-w-[1180px] px-5 py-9 sm:px-8 sm:py-12 lg:px-10">
+      <div className="mx-auto max-w-[1180px] px-5 py-7 sm:px-8 sm:py-9 lg:px-10">
         {step === "card" && (
           <StepShell
             eyebrow="Step 1 · Card"
@@ -191,7 +191,7 @@ function Flow() {
           <StepShell
             eyebrow="Step 5 · Credentials"
             title="Mint Credentials"
-            lead="Each issued credential—and any unknown provider outcome—draws from the allowance; conclusive failures release their reservation. This tester sends a fresh BT-IDEMPOTENCY-KEY, and credential values are returned exactly once."
+            lead="Each issued credential—and any unknown provider outcome—draws from the allowance; conclusive failures release their reservation. Add an idempotency key when you want retry semantics; credential values are returned exactly once."
             onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
           >
             {alwEntry ? (
@@ -226,7 +226,7 @@ function StepShell({
 }) {
   return (
     <section aria-label={title}>
-      <div className="mb-8 flex flex-col items-start justify-between gap-5 sm:flex-row sm:gap-6">
+      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:gap-5">
         <div className="min-w-0 max-w-3xl">
           <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-accent uppercase">
             {eyebrow}
@@ -238,13 +238,13 @@ function StepShell({
           >
             {title}
           </h1>
-          <p className="mt-3 max-w-3xl text-base leading-relaxed text-ink-600">{lead}</p>
+          <p className="mt-2.5 max-w-3xl text-base leading-relaxed text-ink-600">{lead}</p>
         </div>
         <Button variant="ghost" small className="shrink-0" onClick={onRestart}>
           Start over
         </Button>
       </div>
-      <div className="space-y-5">{children}</div>
+      <div className="space-y-4">{children}</div>
     </section>
   );
 }

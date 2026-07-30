@@ -111,10 +111,11 @@ NEXT_PUBLIC_BT_AGENTIC_API_URL=http://localhost:3001/api
   and browser back/forward works. Any step renders safely with missing state —
   you can import a pasted id instead.
 - **Workbench** (`/workbench`) — freeform, resource-oriented: unlimited
-  creates (a fresh idempotency key is generated after each successful create,
-  with a one-click replay of the previous key), allowance PATCH / cancel / rails
-  retry, provider-error viewers, per-credential metadata reads, and paste-an-id
-  import for external resources.
+  creates with an opt-in idempotency header (when enabled, a fresh key is
+  generated after each successful create with a one-click replay of the
+  previous key), allowance PATCH / cancel / rails retry, provider-error
+  viewers, per-credential metadata reads, and paste-an-id import for external
+  resources.
 - **Manual vs SDK** — a persistent toggle. Manual walks every verify action as
   an editable JSON request, with the `submit_session` and `submit_passkey`
   bodies pre-filled from real ceremony results. SDK collapses

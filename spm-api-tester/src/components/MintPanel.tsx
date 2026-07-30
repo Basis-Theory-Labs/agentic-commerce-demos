@@ -354,160 +354,224 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <AllowanceSummary allowance={allowance} />
       <ScenarioChip scenarioPan={scenarioPan} stage="credentials" />
 
-      {mints.length === 0 && (
-        <Callout tone="warning">
-          No rail on this allowance can mint right now. The agentic-token rail must be <b>active</b>{" "}
-          (verify it first); an spt rail is mintable as soon as it is <b>active</b>.
-        </Callout>
+      {revealed.length > 0 && (
+        <section
+          aria-labelledby="created-credentials-heading"
+          className="space-y-3 rounded-2xl border border-accent/25 bg-accent-soft/20 p-4"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-accent/20 pb-3">
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.16em] text-accent uppercase">
+                One-time output
+              </p>
+              <h3 id="created-credentials-heading" className="mt-1 text-base font-semibold">
+                Created credentials
+              </h3>
+              <p className="mt-1 text-xs leading-relaxed text-ink-500">
+                Spendable values returned in this browser session. The newest credential stays open
+                until you collapse it.
+              </p>
+            </div>
+            <span className="rounded-md border border-accent/30 bg-surface px-2.5 py-1 text-xs font-medium text-accent">
+              {revealed.length} {revealed.length === 1 ? "credential" : "credentials"}
+            </span>
+          </div>
+          <div className="space-y-3">
+            {revealed.map((credential, index) => (
+              <CredentialRevealCard
+                key={credential.id}
+                credential={credential}
+                defaultOpen={index === 0}
+              />
+            ))}
+          </div>
+        </section>
       )}
 
-      {revealed.map((credential) => (
-        <CredentialRevealCard key={credential.id} credential={credential} />
-      ))}
+      <section
+        aria-labelledby="credential-requests-heading"
+        className="space-y-3 rounded-2xl border border-ink-200 bg-ink-50/25 p-4"
+      >
+        <div className="border-b border-ink-200 pb-3">
+          <p className="text-[10px] font-semibold tracking-[0.16em] text-ink-500 uppercase">
+            Actions
+          </p>
+          <h3 id="credential-requests-heading" className="mt-1 text-base font-semibold">
+            Requests you can send
+          </h3>
+          <p className="mt-1 text-xs leading-relaxed text-ink-500">
+            Choose a supported format, review its request body, and send it to create a new
+            credential.
+          </p>
+        </div>
 
-      {mints.map((mint, index) => (
-        <details
-          key={mint.key}
-          className="group overflow-hidden rounded-xl border border-ink-200 bg-surface"
-          open={index === 0}
-        >
-          <summary className="cursor-pointer px-4 py-3.5 text-sm font-semibold text-ink-900 transition-colors hover:bg-ink-50">
-            {mint.title}
-            <span className="mt-1 block text-xs font-normal leading-relaxed text-ink-500">
-              {mint.blurb}
-            </span>
-          </summary>
-          <div className="border-t border-ink-200 bg-screen/20 p-4">
-            <RequestPanel
-              method="POST"
-              path={`/allowances/${allowance.id}/credentials`}
-              auth="proxy"
-              defaultBody={mint.body}
-              idempotency
-              idempotencyNote="Payloads are returned exactly once: Replay last key with the same body → 409 CREDENTIAL_PAYLOAD_UNAVAILABLE (no re-mint); replayed key with an edited body → 409 IDEMPOTENCY_CONFLICT. That replay is the teachable moment, not a bug."
-              sendLabel="Mint"
-              loadingLabel="Minting…"
-              successToast={(result) => ({
-                title: "Credential minted",
-                id: (result as Credential).id,
-              })}
-              onSuccess={onMinted}
-              onError={() => {
-                // Unknown provider outcomes commit spend even though the
-                // request throws. Refresh on every mint error; conclusive
-                // failures simply confirm the unchanged/released balance.
-                void refreshAllowance();
-              }}
-            />
-          </div>
-        </details>
-      ))}
+        {mints.length === 0 && (
+          <Callout tone="warning">
+            No rail on this allowance can mint right now. The agentic-token rail must be{" "}
+            <b>active</b> (verify it first); an spt rail is mintable as soon as it is <b>active</b>.
+          </Callout>
+        )}
 
-      {demos.length > 0 && (
-        <details className="overflow-hidden rounded-xl border border-ink-200 bg-surface">
-          <summary className="cursor-pointer px-4 py-3.5 text-sm font-semibold text-ink-900 transition-colors hover:bg-ink-50">
-            Error demos — fail on purpose
-            <span className="mt-1 block text-xs font-normal leading-relaxed text-ink-500">
-              Pre-built bodies that exercise the mint error paths. Each failure renders the full RFC
-              7807 problem in a toast and inline.
-            </span>
-          </summary>
-          <div className="space-y-4 border-t border-ink-200 bg-screen/20 p-4">
-            {demos.map((demo) => (
-              <div key={demo.key}>
-                <h4 className="mb-1 text-xs font-medium text-ink-900">{demo.title}</h4>
-                <p className="mb-1.5 text-xs text-ink-500">{demo.blurb}</p>
+        <div className="space-y-3">
+          {mints.map((mint, index) => (
+            <details
+              key={mint.key}
+              className="group overflow-hidden rounded-xl border border-ink-200 bg-surface"
+              open={index === 0}
+            >
+              <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink-900 transition-colors hover:bg-ink-50">
+                {mint.title}
+                <span className="mt-1 block text-xs font-normal leading-relaxed text-ink-500">
+                  {mint.blurb}
+                </span>
+              </summary>
+              <div className="border-t border-ink-200 bg-screen/20 p-3">
                 <RequestPanel
                   method="POST"
                   path={`/allowances/${allowance.id}/credentials`}
                   auth="proxy"
-                  defaultBody={demo.body}
+                  defaultBody={mint.body}
                   idempotency
-                  sendLabel="Send (expected to fail)"
+                  idempotencyNote="Payloads are returned exactly once: Replay last key with the same body → 409 CREDENTIAL_PAYLOAD_UNAVAILABLE (no re-mint); replayed key with an edited body → 409 IDEMPOTENCY_CONFLICT. That replay is the teachable moment, not a bug."
+                  sendLabel="Mint"
+                  loadingLabel="Minting…"
+                  successToast={(result) => ({
+                    title: "Credential minted",
+                    id: (result as Credential).id,
+                  })}
+                  onSuccess={onMinted}
                   onError={() => {
+                    // Unknown provider outcomes commit spend even though the
+                    // request throws. Refresh on every mint error; conclusive
+                    // failures simply confirm the unchanged/released balance.
                     void refreshAllowance();
                   }}
                 />
               </div>
-            ))}
-          </div>
-        </details>
-      )}
+            </details>
+          ))}
 
-      <Callout tone="warning" title="Unknown mint outcomes are terminal">
-        <code>CREDENTIAL_OUTCOME_UNKNOWN</code> commits the attempted amount to{" "}
-        <code>amount_spent</code>. Reusing that idempotency key only replays the same terminal
-        error; it cannot recover or re-mint. There is no credential reconcile or release endpoint,
-        and the spendable payload cannot be recovered. A new key starts a distinct mint attempt and
-        may spend again.
-      </Callout>
-
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          small
-          loading={listing}
-          onClick={async () => {
-            setListing(true);
-            try {
-              const result = await callAgentic<{ data: Record<string, unknown>[] }>(
-                { method: "GET", path: `/allowances/${allowance.id}/credentials`, auth: "proxy" },
-                logger,
-              );
-              setListed(result.data ?? []);
-            } catch (error) {
-              toast.error(error);
-            } finally {
-              setListing(false);
-            }
-          }}
-        >
-          List credentials (metadata only)
-        </Button>
-      </div>
-      {listed && (
-        <div className="rounded-xl border border-ink-200 bg-surface p-4 text-xs">
-          {listed.length === 0 ? (
-            <p className="text-ink-500">No credentials minted on this allowance yet.</p>
-          ) : (
-            <ul className="space-y-1.5">
-              {listed.map((item) => (
-                <li key={String(item.id)} className="flex flex-wrap items-center gap-2">
-                  <CopyChip value={String(item.id)} />
-                  <span className="font-mono text-xs text-ink-600">
-                    {String(item.format)} · {String((item.amount as { value?: string })?.value)}{" "}
-                    {String((item.amount as { currency?: string })?.currency)} ·{" "}
-                    {String(item.status)}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    small
-                    onClick={() =>
-                      callAgentic(
-                        {
-                          method: "GET",
-                          path: `/allowances/${allowance.id}/credentials/${String(item.id)}`,
-                          auth: "proxy",
-                        },
-                        logger,
-                      ).catch(() => {})
-                    }
-                  >
-                    GET
-                  </Button>
-                </li>
-              ))}
-            </ul>
+          {demos.length > 0 && (
+            <details className="overflow-hidden rounded-xl border border-ink-200 bg-surface">
+              <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink-900 transition-colors hover:bg-ink-50">
+                Error demos — fail on purpose
+                <span className="mt-1 block text-xs font-normal leading-relaxed text-ink-500">
+                  Pre-built bodies that exercise the mint error paths. Each failure renders the full
+                  RFC 7807 problem in a toast and inline.
+                </span>
+              </summary>
+              <div className="space-y-3 border-t border-ink-200 bg-screen/20 p-3">
+                {demos.map((demo) => (
+                  <div key={demo.key}>
+                    <h4 className="mb-1 text-xs font-medium text-ink-900">{demo.title}</h4>
+                    <p className="mb-1.5 text-xs text-ink-500">{demo.blurb}</p>
+                    <RequestPanel
+                      method="POST"
+                      path={`/allowances/${allowance.id}/credentials`}
+                      auth="proxy"
+                      defaultBody={demo.body}
+                      idempotency
+                      sendLabel="Send (expected to fail)"
+                      onError={() => {
+                        void refreshAllowance();
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </details>
           )}
-          <p className="mt-2 text-xs text-ink-500">
-            Metadata only — the spendable values were returned once, at mint time, and never again.
-          </p>
         </div>
-      )}
+
+        <Callout tone="warning" title="Unknown mint outcomes are terminal">
+          <code>CREDENTIAL_OUTCOME_UNKNOWN</code> commits the attempted amount to{" "}
+          <code>amount_spent</code>. Reusing that idempotency key only replays the same terminal
+          error; it cannot recover or re-mint. There is no credential reconcile or release endpoint,
+          and the spendable payload cannot be recovered. A new key starts a distinct mint attempt
+          and may spend again.
+        </Callout>
+      </section>
+
+      <section
+        aria-labelledby="credential-records-heading"
+        className="space-y-3 rounded-2xl border border-ink-200 bg-surface p-4"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold tracking-[0.16em] text-ink-500 uppercase">
+              Read-only
+            </p>
+            <h3 id="credential-records-heading" className="mt-1 text-base font-semibold">
+              Credential records
+            </h3>
+            <p className="mt-1 text-xs leading-relaxed text-ink-500">
+              Retrieve IDs, formats, amounts, and statuses. Spendable values are never returned
+              again.
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            small
+            loading={listing}
+            onClick={async () => {
+              setListing(true);
+              try {
+                const result = await callAgentic<{ data: Record<string, unknown>[] }>(
+                  { method: "GET", path: `/allowances/${allowance.id}/credentials`, auth: "proxy" },
+                  logger,
+                );
+                setListed(result.data ?? []);
+              } catch (error) {
+                toast.error(error);
+              } finally {
+                setListing(false);
+              }
+            }}
+          >
+            List metadata
+          </Button>
+        </div>
+        {listed && (
+          <div className="rounded-xl border border-ink-200 bg-ink-50/35 p-4 text-xs">
+            {listed.length === 0 ? (
+              <p className="text-ink-500">No credentials minted on this allowance yet.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {listed.map((item) => (
+                  <li key={String(item.id)} className="flex flex-wrap items-center gap-2">
+                    <CopyChip value={String(item.id)} />
+                    <span className="font-mono text-xs text-ink-600">
+                      {String(item.format)} · {String((item.amount as { value?: string })?.value)}{" "}
+                      {String((item.amount as { currency?: string })?.currency)} ·{" "}
+                      {String(item.status)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      small
+                      onClick={() =>
+                        callAgentic(
+                          {
+                            method: "GET",
+                            path: `/allowances/${allowance.id}/credentials/${String(item.id)}`,
+                            auth: "proxy",
+                          },
+                          logger,
+                        ).catch(() => {})
+                      }
+                    >
+                      GET
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -515,7 +579,7 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
 export function AllowanceSummary({ allowance }: { allowance: Allowance }) {
   return (
     <div className="surface-shadow overflow-hidden rounded-xl border border-ink-200 bg-surface">
-      <div className="grid gap-4 border-b border-ink-200 bg-ink-50/45 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:p-5">
+      <div className="grid gap-4 border-b border-ink-200 bg-ink-50/45 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div className="min-w-0">
           <p className="mb-1.5 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
             Allowance ID
@@ -530,7 +594,7 @@ export function AllowanceSummary({ allowance }: { allowance: Allowance }) {
         </div>
       </div>
 
-      <div className="space-y-5 p-4 sm:p-5">
+      <div className="space-y-4 p-4">
         <div>
           <p className="mb-2 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
             Balance

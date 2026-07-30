@@ -126,9 +126,9 @@ export function VerifyPanel({
   const provider = rail.provider;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="grid gap-4 rounded-xl border border-ink-200 bg-surface p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div>
             <p className="mb-1.5 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
               Allowance ID
@@ -461,19 +461,11 @@ function ManualVerify({
   const nextAction = verifyState?.next_action;
 
   if (active) {
-    return (
-      <div className="space-y-5">
-        <Callout tone="success" title="Rail active">
-          The network confirmed the ceremony server-to-server. Credentials can now be minted on this
-          rail. Verifying an already-active rail is harmless — <code>start</code> just returns{" "}
-          <code>{`{ status: 'active', rail: 'agentic-token', provider: '${provider}' }`}</code>.
-        </Callout>
-      </div>
-    );
+    return null;
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {!verifyState && (
         <>
           <p className="text-sm leading-relaxed text-ink-600">
@@ -495,7 +487,7 @@ function ManualVerify({
       )}
 
       {verifyState && nextAction && (
-        <div className="surface-shadow rounded-xl border border-ink-200 bg-surface p-4 sm:p-5">
+        <div className="surface-shadow rounded-xl border border-ink-200 bg-surface p-4">
           <h3 className="mb-4 font-mono text-sm font-semibold text-accent">
             next_action: {String(nextAction.type)}
           </h3>
@@ -993,7 +985,7 @@ function SdkVerify({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <p className="text-sm leading-relaxed text-ink-600">
         This is the whole integration a customer ships: one factory call, one{" "}
         <code>verifyAllowance</code>. The SDK collects device context, drives the Visa iframe/popup
@@ -1008,12 +1000,7 @@ function SdkVerify({
         code={SDK_INTEGRATION_SNIPPET}
         defaultOpen
       />
-      {active ? (
-        <Callout tone="success" title="Rail active">
-          Verification complete. Re-running is harmless — the SDK resolves immediately on an
-          already-active rail.
-        </Callout>
-      ) : (
+      {!active && (
         <Button onClick={run} loading={running} loadingLabel="SDK verifying — follow its prompts…">
           Verify with SDK
         </Button>

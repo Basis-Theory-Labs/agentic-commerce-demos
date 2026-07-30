@@ -26,11 +26,40 @@ describe("CredentialRevealCard", () => {
     );
 
     expect(html).toContain("Credential ID");
+    expect(html).toContain("Created credential");
     expect(html).toContain("Single-use card");
     expect(html).toContain("5595 3563 8385 2890");
     expect(html).toContain("Credential fields");
     expect(html).toContain("4 values");
     expect(html).toContain("agentic-token · agentpay");
+  });
+
+  it("can render a previous credential collapsed", () => {
+    const html = renderToStaticMarkup(
+      <CredentialRevealCard
+        defaultOpen={false}
+        credential={{
+          id: "cred_previous",
+          rail: "spt",
+          provider: "stripe",
+          amount: { value: "5.00", currency: "USD" },
+          expires_at: "2026-07-31T17:10:00.000Z",
+          credential: {
+            format: "card",
+            value: {
+              number: "4242424242424242",
+              expiration_month: "08",
+              expiration_year: "2029",
+              cvc: "664",
+            },
+          },
+        }}
+      />,
+    );
+
+    expect(html).toContain("<details");
+    expect(html).not.toContain('open=""');
+    expect(html).toContain("cred_previous");
   });
 
   it("keeps nested network-token cryptogram fields visible and copyable", () => {

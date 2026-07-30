@@ -247,7 +247,7 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
         ))}
       </div>
 
-      <div className="space-y-5 p-4 sm:p-6">
+      <div className="space-y-4 p-4 sm:p-5">
         {tab === "mock" && isProduction && (
           <Callout tone="warning" title="Production tenant">
             These PANs only trigger scenarios on test tenants. On this tenant they are treated as
@@ -264,7 +264,7 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
                   key={scenario.pan}
                   onClick={() => setSelected(scenario)}
                   aria-pressed={selected?.pan === scenario.pan}
-                  className={`rounded-xl border p-4 text-left text-sm transition-colors ${
+                  className={`rounded-xl border p-3.5 text-left text-sm transition-colors ${
                     selected?.pan === scenario.pan
                       ? "border-accent/60 bg-accent-soft"
                       : "border-ink-200 bg-ink-50/50 hover:border-ink-300 hover:bg-ink-50"

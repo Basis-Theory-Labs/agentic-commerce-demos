@@ -59,30 +59,69 @@ function rowsFor(credential: Credential): FieldRow[] {
   return [{ label: format, value: String(value) }];
 }
 
-export function CredentialRevealCard({ credential }: { credential: Credential }) {
+export function CredentialRevealCard({
+  credential,
+  defaultOpen = true,
+}: {
+  credential: Credential;
+  defaultOpen?: boolean;
+}) {
   const rows = rowsFor(credential);
   const format = credential.credential.format;
   const isCard = format === "card" && rows.some((row) => row.label === "number");
 
   return (
-    <div className="surface-shadow overflow-hidden rounded-xl border border-ink-200 bg-surface">
-      <div className="grid gap-4 border-b border-ink-200 bg-ink-50/45 px-4 py-3.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:px-5">
-        <div className="min-w-0">
-          <p className="mb-1.5 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
-            Credential ID
-          </p>
-          <CopyChip value={credential.id} />
+    <details
+      open={defaultOpen}
+      className="group/reveal surface-shadow overflow-hidden rounded-xl border border-accent/25 bg-surface"
+    >
+      <summary className="cursor-pointer list-none bg-ink-50/55 px-4 py-3 transition-colors hover:bg-ink-100/70 [&::-webkit-details-marker]:hidden">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold tracking-[0.14em] text-accent uppercase">
+              Created credential
+            </p>
+            <p className="mt-1 truncate font-mono text-sm text-ink-900">{credential.id}</p>
+          </div>
+          <div className="flex items-center gap-4 sm:justify-end">
+            <div>
+              <p className="mb-1 text-[10px] font-medium tracking-wide text-ink-500 uppercase">
+                Format
+              </p>
+              <span className="rounded-md border border-accent/30 bg-accent-soft px-2 py-1 text-[11px] font-semibold text-accent uppercase">
+                {format}
+              </span>
+            </div>
+            <div className="hidden sm:block">
+              <p className="mb-1 text-[10px] font-medium tracking-wide text-ink-500 uppercase">
+                Amount
+              </p>
+              <p className="font-mono text-xs text-ink-800">
+                {credential.amount?.value ?? "—"} {credential.amount?.currency ?? ""}
+              </p>
+            </div>
+            <span
+              aria-hidden
+              className="ml-auto text-xl leading-none text-ink-500 transition-transform group-open/reveal:rotate-90 sm:ml-1"
+            >
+              ›
+            </span>
+          </div>
         </div>
-        <div className="sm:text-right">
-          <p className="mb-1.5 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
-            Format
+      </summary>
+      <div className="space-y-3.5 border-t border-accent/20 p-4">
+        <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-ink-200 bg-ink-50/45 px-3 py-2.5">
+          <div className="min-w-0">
+            <p className="mb-1 text-[10px] font-medium tracking-wide text-ink-500 uppercase">
+              Credential ID
+            </p>
+            <CopyChip value={credential.id} />
+          </div>
+          <p className="text-xs text-ink-500">
+            Collapse this card after copying the one-time values.
           </p>
-          <span className="rounded-md border border-accent/30 bg-accent-soft px-2 py-1 text-[11px] font-semibold text-accent uppercase">
-            {format}
-          </span>
         </div>
-      </div>
-      <div className="space-y-4 p-4 sm:p-5">
+
         <Callout tone="warning">
           This credential value is only shown once — it is not retrievable again. Copy what you need
           now.
@@ -145,7 +184,7 @@ export function CredentialRevealCard({ credential }: { credential: Credential })
           />
         </dl>
       </div>
-    </div>
+    </details>
   );
 }
 
@@ -158,7 +197,7 @@ function CardCredentialPreview({ rows }: { rows: FieldRow[] }) {
   const cvc = value("cvc");
 
   return (
-    <div className="relative isolate max-w-xl overflow-hidden rounded-2xl border border-accent/25 bg-gradient-to-br from-[#1a3031] via-surface-raised to-screen p-5 shadow-2xl sm:p-6">
+    <div className="relative isolate max-w-xl overflow-hidden rounded-2xl border border-accent/25 bg-gradient-to-br from-[#1a3031] via-surface-raised to-screen p-4 shadow-2xl sm:p-5">
       <div
         aria-hidden
         className="absolute -top-24 -right-20 -z-10 h-64 w-64 rounded-full bg-accent/10 blur-3xl"
