@@ -102,7 +102,7 @@ function Flow() {
         />
       </div>
 
-      <div className="mx-auto max-w-[1180px] px-4 py-5 sm:px-6 sm:py-6">
+      <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-7 sm:py-7">
         {step === "card" && (
           <StepShell
             title="Start with a Card"
@@ -221,7 +221,7 @@ function StepShell({
     <section aria-label={title}>
       <div className="mb-3 flex flex-col items-start justify-between gap-2 sm:flex-row">
         <div className="min-w-0 max-w-3xl">
-          <h1 id="step-heading" tabIndex={-1} className="text-xl font-medium outline-none">
+          <h1 id="step-heading" tabIndex={-1} className="text-[22px] font-medium outline-none">
             {title}
           </h1>
           <p className="mt-1 max-w-3xl text-sm text-ink-600">{lead}</p>

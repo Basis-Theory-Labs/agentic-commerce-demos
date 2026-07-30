@@ -44,7 +44,6 @@ import {
 } from "@/lib/sdkVerify";
 import { SNIPPET_LOOP, SNIPPET_PASSKEY, SNIPPET_REDIRECT } from "@/lib/snippets";
 import { AGENTIC_API_URL, VISA_ENVIRONMENT, VISA_SANDBOX_EMBED } from "@/lib/env";
-import { NOT_SIMULATABLE } from "@/lib/scenarios";
 import { RequestPanel } from "@/components/RequestPanel";
 import { ScenarioChip } from "@/components/ScenarioChip";
 import { Button } from "@/components/ui/Button";
@@ -153,16 +152,6 @@ export function VerifyPanel({
           onActive={onActive}
         />
       )}
-      <details className="rounded-lg border border-ink-200 bg-surface px-3 py-2 text-xs text-ink-600">
-        <summary className="cursor-pointer font-semibold text-ink-900">
-          Not simulatable with test cards
-        </summary>
-        <ul className="mt-2 list-disc space-y-1 pl-4">
-          {NOT_SIMULATABLE.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </details>
     </div>
   );
 }

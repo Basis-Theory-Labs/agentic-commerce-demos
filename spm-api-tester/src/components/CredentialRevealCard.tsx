@@ -75,14 +75,14 @@ export function CredentialRevealCard({
       className="group/reveal overflow-hidden rounded-lg border border-accent/25 bg-surface"
     >
       <summary className="flex cursor-pointer list-none items-center gap-2 bg-ink-50/55 px-3 py-2 text-xs transition-colors hover:bg-ink-100/70 [&::-webkit-details-marker]:hidden">
-        <span className="text-[10px] font-semibold tracking-wide text-accent uppercase">
+        <span className="text-[11px] font-semibold tracking-wide text-accent uppercase">
           Credential
         </span>
         <span className="min-w-0 flex-1 truncate font-mono text-ink-900">{credential.id}</span>
         <span className="hidden font-mono text-[11px] text-ink-500 sm:inline">
           {credential.amount?.value ?? "—"} {credential.amount?.currency ?? ""}
         </span>
-        <span className="rounded-md border border-accent/30 bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent uppercase">
+        <span className="rounded-md border border-accent/30 bg-accent-soft px-1.5 py-0.5 text-[11px] font-semibold text-accent uppercase">
           {format}
         </span>
         <span
@@ -94,7 +94,7 @@ export function CredentialRevealCard({
       </summary>
       <div className="space-y-2.5 border-t border-accent/20 p-3">
         <div>
-          <p className="mb-1 text-[10px] font-medium tracking-wide text-ink-500 uppercase">
+          <p className="mb-1 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
             Credential ID
           </p>
           <CopyChip value={credential.id} />
@@ -111,7 +111,7 @@ export function CredentialRevealCard({
                 key={row.label}
                 className="flex min-w-0 items-center justify-between gap-3 border-b border-ink-200 px-3 py-2 last:border-b-0 sm:[&:nth-child(odd)]:border-r"
               >
-                <dt className="text-[10px] font-medium tracking-wide text-ink-500 uppercase">
+                <dt className="text-[11px] font-medium tracking-wide text-ink-500 uppercase">
                   {row.label.replaceAll("_", " ")}
                 </dt>
                 <dd className="min-w-0 text-right">
@@ -158,7 +158,7 @@ function CredentialMeta({
 }) {
   return (
     <div>
-      <dt className="text-[10px] font-medium tracking-wide text-ink-500 uppercase">{label}</dt>
+      <dt className="text-[11px] font-medium tracking-wide text-ink-500 uppercase">{label}</dt>
       <dd className={`mt-1 text-ink-800 ${mono ? "font-mono" : ""}`}>{value}</dd>
     </div>
   );

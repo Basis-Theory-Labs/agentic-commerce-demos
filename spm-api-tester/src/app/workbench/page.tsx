@@ -67,7 +67,7 @@ function Workbench() {
   };
 
   return (
-    <main className="mx-auto max-w-[1240px] px-4 py-4 pb-12 sm:px-6">
+    <main className="mx-auto max-w-[1400px] px-4 py-5 pb-14 sm:px-7">
       <h1 className="sr-only">Workbench</h1>
 
       <nav

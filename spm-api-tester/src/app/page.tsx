@@ -17,7 +17,7 @@ function Landing() {
       <p className="mb-1 text-[10px] font-semibold tracking-[0.12em] text-accent uppercase">
         Shared Payment Model
       </p>
-      <h1 className="text-xl font-medium">SPM API Tester</h1>
+      <h1 className="text-[22px] font-medium">SPM API Tester</h1>
       <p className="mt-1 max-w-2xl text-sm text-ink-600">
         Run the complete card-to-credential flow, or work directly with any resource.
       </p>

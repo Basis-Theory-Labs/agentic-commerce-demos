@@ -20,6 +20,7 @@ export function JsonEditor({
   ariaLabel?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [open, setOpen] = useState(true);
 
   const parseError = useMemo(() => {
     if (!value.trim()) return null;
@@ -52,7 +53,11 @@ export function JsonEditor({
   const lineCount = value.split("\n").length;
 
   return (
-    <details className="group overflow-hidden rounded-lg border border-ink-300 bg-surface">
+    <details
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+      className="group overflow-hidden rounded-lg border border-ink-300 bg-surface"
+    >
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-surface-raised px-3 py-2 text-xs transition-colors hover:bg-ink-100/70 [&::-webkit-details-marker]:hidden">
         <span className="font-medium tracking-wide text-ink-700 uppercase">JSON body</span>
         <span className={`flex items-center gap-2 ${parseError ? "text-error" : "text-ink-500"}`}>

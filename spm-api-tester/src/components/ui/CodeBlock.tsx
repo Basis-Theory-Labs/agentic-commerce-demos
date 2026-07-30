@@ -9,7 +9,7 @@ export function CodeBlock({
   title,
   language = "js",
   code,
-  defaultOpen = false,
+  defaultOpen = true,
 }: {
   title: string;
   language?: CodeLanguage;
@@ -17,6 +17,7 @@ export function CodeBlock({
   defaultOpen?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
 
   const copy = async () => {
     try {
@@ -31,7 +32,8 @@ export function CodeBlock({
   return (
     <details
       className="group overflow-hidden rounded-xl border border-ink-200 bg-surface"
-      open={defaultOpen}
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
     >
       <summary className="flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-xs font-semibold text-ink-900 transition-colors hover:bg-ink-50">
         <span>

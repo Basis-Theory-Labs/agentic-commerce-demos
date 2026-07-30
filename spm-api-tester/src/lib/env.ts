@@ -11,6 +11,11 @@ export const VAULT_API_URL = (
   process.env.NEXT_PUBLIC_BT_VAULT_API_URL || "https://api.test.basistheory.com"
 ).replace(/\/+$/, "");
 
+// The SDK is the product integration and therefore the tester's default.
+// Manual raw-API verification is an opt-in teaching/debug surface.
+export const MANUAL_VERIFICATION_ENABLED =
+  process.env.NEXT_PUBLIC_ENABLE_MANUAL_VERIFICATION === "true";
+
 // 'production' (default) uses the embed block served by the API for the Visa
 // surfaces; 'sandbox' substitutes the override credentials below. No network
 // credentials live in source — sandbox values come from env.

@@ -1,11 +1,11 @@
 "use client";
 
-// The verification flow variant: Manual (raw API, editable requests) or SDK
-// (@basis-theory/web-agentic). Persisted in localStorage so the
-// choice follows the user across pages; exposed via useSyncExternalStore so
-// SSR renders the default and the client subscribes to changes.
+// SDK verification is the default product path. The Manual raw-API teaching
+// path is exposed only when NEXT_PUBLIC_ENABLE_MANUAL_VERIFICATION=true.
+// An enabled choice persists across pages.
 
 import { useSyncExternalStore } from "react";
+import { MANUAL_VERIFICATION_ENABLED } from "@/lib/env";
 
 export type FlowVariant = "manual" | "sdk";
 
@@ -13,11 +13,12 @@ const STORAGE_KEY = "spm-tester-flow-variant";
 const CHANGE_EVENT = "spm-tester-flow-variant-change";
 
 function readVariant(): FlowVariant {
+  if (!MANUAL_VERIFICATION_ENABLED) return "sdk";
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === "sdk" ? "sdk" : "manual";
+    return stored === "manual" ? "manual" : "sdk";
   } catch {
-    return "manual";
+    return "sdk";
   }
 }
 
@@ -31,29 +32,36 @@ function subscribe(callback: () => void): () => void {
 }
 
 export function setFlowVariant(next: FlowVariant): void {
+  const allowed = next === "manual" && !MANUAL_VERIFICATION_ENABLED ? "sdk" : next;
   try {
-    localStorage.setItem(STORAGE_KEY, next);
+    localStorage.setItem(STORAGE_KEY, allowed);
   } catch {
-    // Storage unavailable — readVariant() will keep returning the default,
-    // so the toggle is inert; verification still runs in Manual mode.
+    // Storage unavailable — readVariant() keeps returning SDK.
   }
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
 export function useFlowVariant(): { variant: FlowVariant; setVariant: (v: FlowVariant) => void } {
-  const variant = useSyncExternalStore(subscribe, readVariant, () => "manual" as FlowVariant);
+  const variant = useSyncExternalStore(subscribe, readVariant, () => "sdk" as FlowVariant);
   return { variant, setVariant: setFlowVariant };
 }
 
 export function VariantToggle() {
   const { variant, setVariant } = useFlowVariant();
+  if (!MANUAL_VERIFICATION_ENABLED) {
+    return (
+      <span className="inline-flex rounded-md border border-accent/30 bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent">
+        SDK
+      </span>
+    );
+  }
   return (
     <div
       role="group"
       aria-label="Verification flow variant"
       className="inline-flex rounded-lg border border-ink-300 bg-surface p-0.5"
     >
-      {(["manual", "sdk"] as const).map((option) => (
+      {(["sdk", "manual"] as const).map((option) => (
         <button
           key={option}
           aria-pressed={variant === option}

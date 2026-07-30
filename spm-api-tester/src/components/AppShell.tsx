@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAppConfig } from "@/lib/config";
@@ -94,14 +95,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="border-b border-ink-200 bg-screen/95 md:sticky md:top-0 md:z-50 md:backdrop-blur-xl">
         <div className="flex min-h-12 w-full flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-1.5 lg:px-6">
           <Link href="/" className="group flex shrink-0 items-center gap-2">
-            <span
-              aria-hidden
-              className="flex h-7 w-7 items-center justify-center rounded-md bg-ink-950 font-mono text-[10px] font-semibold text-screen transition-transform group-hover:scale-[1.03]"
-            >
-              bt/
-            </span>
+            <Image
+              src="/basis-theory.svg"
+              width={28}
+              height={28}
+              alt=""
+              className="h-7 w-7 opacity-90 invert transition-transform group-hover:scale-[1.03]"
+              priority
+            />
             <span className="flex flex-col">
-              <span className="text-[10px] font-medium text-ink-500">Basis Theory</span>
+              <span className="text-[11px] font-medium text-ink-500">Basis Theory</span>
               <span className="font-display text-xs font-semibold text-ink-950">
                 SPM API Tester
               </span>

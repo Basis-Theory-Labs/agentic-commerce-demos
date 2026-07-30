@@ -7,11 +7,11 @@ Model (SPM)**:
 card token → payment method → allowance → verification → credentials
 ```
 
-Tester-owned Manual API calls are visible and copyable, and their writes are
-editable. Elements activity and SDK lifecycle events are logged in sanitized
-form. Two modes (a guided five-step flow and a freeform workbench), two
-verification variants (raw API or the `@basis-theory/web-agentic` SDK), and
-full coverage of the mock test-card scenarios.
+SDK verification is the default product path. Elements activity and SDK
+lifecycle events are logged in sanitized form. A configuration flag exposes
+the editable, copyable raw-API verification path for teaching and debugging.
+The guided five-step flow and freeform workbench cover the full mock test-card
+scenario catalog.
 
 ## Architecture
 
@@ -71,6 +71,7 @@ Environment variables (see `.env.example` for full comments):
 | `NEXT_PUBLIC_BT_VAULT_API_URL` | Vault base for browser tokenization |
 | `BT_TENANT_TYPE` | Only exact `test` enables mock defaults and test-only shortcuts; missing/other values fail closed to production behavior |
 | `BT_DISPLAY_NAME` | Name the card networks show to cardholders |
+| `NEXT_PUBLIC_ENABLE_MANUAL_VERIFICATION` | Optional: set `true` to expose the Manual (raw API) verification choice; SDK is the default |
 | `NEXT_PUBLIC_BT_VISA_ENVIRONMENT` (+ `NEXT_PUBLIC_BT_VISA_SANDBOX_*`) | Optional Visa sandbox override for the Manual variant — no network credentials live in source; the current SDK exposes no equivalent override |
 
 ### Local agentic-commerce API
@@ -116,14 +117,12 @@ NEXT_PUBLIC_BT_AGENTIC_API_URL=http://localhost:3001/api
   previous key), allowance PATCH / cancel / rails retry, provider-error
   viewers, per-credential metadata reads, and paste-an-id import for external
   resources.
-- **Manual vs SDK** — a persistent toggle. Manual walks every verify action as
-  an editable JSON request, with the `submit_session` and `submit_passkey`
-  bodies pre-filled from real ceremony results. SDK collapses
-  the same verification into one `verifyAllowance(id, { provider })` call with
-  the SDK's own UI. The provider comes from the allowance rail and is never
-  inferred from card brand. Both variants operate on the same allowances.
-  Compare the Manual wire timeline with the SDK's lifecycle events and typed
-  failures in the inspector; the SDK owns its internal HTTP transport.
+- **SDK verification by default** — verification uses one
+  `verifyAllowance(id, { provider })` call and the SDK's own UI. Set
+  `NEXT_PUBLIC_ENABLE_MANUAL_VERIFICATION=true` to expose a persistent
+  SDK/Manual choice. Manual walks every verify action as an editable raw API
+  request, with ceremony results pre-filled into the strict request bodies.
+  The provider always comes from the allowance rail, never the card brand.
 
 ## Test scenarios
 
@@ -189,7 +188,7 @@ again: a demo affordance, not something to ship.
 ## Project layout
 
 ```text
-src/app/page.tsx                  Landing: mode cards + variant toggle + env summary
+src/app/page.tsx                  Compact Guided Flow / Workbench chooser
 src/app/flow/page.tsx             Guided wizard (URL-addressable steps)
 src/app/workbench/page.tsx        Freeform resource workbench
 src/app/api/config/route.ts       Non-secret runtime config

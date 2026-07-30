@@ -28,7 +28,7 @@ export function SetupScreen({
           <p className="mb-1 text-[10px] font-semibold tracking-[0.12em] text-accent uppercase">
             SPM API Tester
           </p>
-          <h1 className="text-xl font-medium">One-time setup</h1>
+          <h1 className="text-[22px] font-medium">One-time setup</h1>
         </div>
         <p className="max-w-2xl text-sm text-ink-600">
           Copy <code className="bg-ink-100 px-1">.env.example</code> to{" "}

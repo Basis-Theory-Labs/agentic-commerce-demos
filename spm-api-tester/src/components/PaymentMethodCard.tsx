@@ -121,13 +121,13 @@ export function PaymentMethodCard({
     <div className="overflow-hidden rounded-lg border border-ink-200 bg-surface">
       <div className="grid gap-3 border-b border-ink-200 bg-ink-50/45 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div className="min-w-0">
-          <p className="mb-1 text-[10px] font-medium tracking-wide text-ink-500 uppercase">
+          <p className="mb-1 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
             Payment method ID
           </p>
           <CopyChip value={pm.id} />
         </div>
         <div className="sm:text-right">
-          <p className="mb-1 text-[10px] font-medium tracking-wide text-ink-500 uppercase">Card</p>
+          <p className="mb-1 text-[11px] font-medium tracking-wide text-ink-500 uppercase">Card</p>
           <span className="font-mono text-sm text-ink-800">
             {pm.card?.brand ?? "card"} •••• {pm.card?.last4}
             {pm.card?.expiration_month != null &&
@@ -138,7 +138,7 @@ export function PaymentMethodCard({
 
       <div className="space-y-2.5 p-3">
         <div>
-          <p className="mb-1.5 text-[10px] font-medium tracking-wide text-ink-500 uppercase">
+          <p className="mb-1.5 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
             Rails
           </p>
           <RailChips rails={pm.rails} />
