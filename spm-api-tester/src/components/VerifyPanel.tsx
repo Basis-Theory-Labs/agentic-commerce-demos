@@ -575,6 +575,30 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
         </div>
       )}
 
+      {verifyState && !nextAction && verifyState.status !== "active" && (
+        <div className="space-y-2.5 border border-ink-200 bg-white p-3">
+          <Callout tone="warning" title="Verification still pending">
+            The rail is <code>verification_required</code> with nothing for the browser to do —
+            the provider hasn’t finalized yet. Send <code>complete</code> again (it is
+            authoritative and idempotent), or restart verification below.
+          </Callout>
+          {provider === "agentpay" && (
+            <RequestPanel
+              method="POST"
+              path={verifyPath}
+              auth="public"
+              tag="complete"
+              defaultBody={{ ...base, action: "complete" }}
+              sendLabel="Complete Verification"
+              disabled={busy}
+              onSendStateChange={setBusy}
+              onSuccess={(result) => handleCompleteResult(result as VerifyResponse)}
+            />
+          )}
+          {pollNote && <p className="text-xs text-warning">{pollNote}</p>}
+        </div>
+      )}
+
       {ceremonyError && (
         <div role="alert" className="border border-error-border bg-error-soft p-2 text-xs text-error">
           {ceremonyError}
