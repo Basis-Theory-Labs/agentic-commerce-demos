@@ -12,13 +12,16 @@ export interface Money {
 export type RailName = OpenString<"agentic-token" | "spt">;
 export type ProviderName = OpenString<"vic" | "agentpay" | "stripe">;
 export type RailStatus = OpenString<"enabled" | "pending" | "error" | "active" | "pending_verification">;
+export type CredentialFormat = OpenString<"card" | "network-token" | "identifier" | "mpp">;
 
 export interface Rail {
   rail: RailName;
   provider?: ProviderName;
   status: RailStatus;
+  /** Formats the API advertises for this allowance rail. */
+  credential_formats?: CredentialFormat[];
   /** Present when status is "error" — sanitized failure summary. */
-  error?: { type?: string; title?: string; detail?: string; [key: string]: unknown };
+  error?: { code?: string; [key: string]: unknown };
 }
 
 export interface PaymentMethod {
@@ -60,7 +63,7 @@ export interface Credential {
   amount: Money;
   expires_at: string;
   credential: {
-    format: OpenString<"card" | "network-token" | "identifier" | "mpp">;
+    format: CredentialFormat;
     value?: unknown;
   };
   [key: string]: unknown;
@@ -126,8 +129,35 @@ export interface ApiProblem {
   title?: string;
   status?: number;
   detail?: string;
+  instance?: string;
   errors?: Record<string, string[]>;
+  debug?: { provider_correlation?: string; [key: string]: unknown };
   [key: string]: unknown;
+}
+
+export interface ProviderErrorRecord {
+  id?: string;
+  code?: string;
+  title?: string;
+  detail?: string;
+  provider?: string;
+  operation?: string;
+  rail?: string;
+  provider_code?: string | null;
+  provider_correlation_id?: string | null;
+  payment_method_id?: string | null;
+  allowance_id?: string | null;
+  payment_credential_id?: string | null;
+  occurred_at?: string;
+  [key: string]: unknown;
+}
+
+export interface ProviderErrorPage {
+  data: ProviderErrorRecord[];
+  pagination?: {
+    next_cursor?: string;
+    has_more?: boolean;
+  };
 }
 
 /* ── app config served by /api/config ─────────────────────────────────── */

@@ -1,7 +1,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CARD_SCENARIOS, findScenario, NOT_SIMULATABLE, scenariosAt } from "./scenarios";
+import {
+  CARD_SCENARIOS,
+  findScenario,
+  NOT_SIMULATABLE,
+  notSimulatableMarkdownList,
+  scenarioMarkdownTable,
+  scenariosAt,
+} from "./scenarios";
 
 describe("scenario catalog integrity", () => {
   it("contains the full verified 9-PAN matrix", () => {
@@ -45,21 +52,21 @@ describe("scenario catalog integrity", () => {
   });
 
   it("maps the error types verified against agentic-commerce mocks", () => {
-    expect(findScenario("4929980395567582")?.expectedErrorType).toBe("INVALID_OTP");
-    expect(findScenario("5186160000000003")?.expectedErrorType).toBe(
+    expect(findScenario("4929980395567582")?.expectedErrorCode).toBe("INVALID_OTP");
+    expect(findScenario("5186160000000003")?.expectedErrorCode).toBe(
       "PROVIDER_VERIFICATION_FAILED",
     );
-    expect(findScenario("5186160000000001")?.expectedErrorType).toBe("CARD_REJECTED");
-    expect(findScenario("4000000000000002")?.expectedErrorType).toBe("CARD_REJECTED");
-    expect(findScenario("4000000000000119")?.expectedErrorType).toBe(
+    expect(findScenario("5186160000000001")?.expectedErrorCode).toBe("CARD_REJECTED");
+    expect(findScenario("4000000000000002")?.expectedErrorCode).toBe("CARD_REJECTED");
+    expect(findScenario("4000000000000119")?.expectedErrorCode).toBe(
       "PROVIDER_ENROLLMENT_FAILED",
     );
-    expect(findScenario("4000000000000341")?.expectedErrorType).toBe(
+    expect(findScenario("4000000000000341")?.expectedErrorCode).toBe(
       "PROVIDER_CREDENTIALS_FAILED",
     );
     // No reconcile flow exists in the API — unknown outcome burns the
     // reservation and 409s with CREDENTIAL_OUTCOME_UNKNOWN.
-    expect(findScenario("4000000000009995")?.expectedErrorType).toBe("CREDENTIAL_OUTCOME_UNKNOWN");
+    expect(findScenario("4000000000009995")?.expectedErrorCode).toBe("CREDENTIAL_OUTCOME_UNKNOWN");
   });
 
   it("stages partition the catalog", () => {
@@ -70,19 +77,16 @@ describe("scenario catalog integrity", () => {
     expect(total).toBe(CARD_SCENARIOS.length);
   });
 
-  it("README's scenario table stays in sync with the catalog", () => {
-    // The catalog is the single source of truth; this stops the README from
-    // drifting the way the old app's did.
+  it("README's generated scenario blocks stay byte-for-byte in sync", () => {
     const readme = readFileSync(join(__dirname, "..", "..", "README.md"), "utf-8");
-    for (const scenario of CARD_SCENARIOS) {
-      const spaced = scenario.pan.replace(/(\d{4})/g, "$1 ").trim();
-      expect(readme, `README is missing ${spaced}`).toContain(spaced);
-      if (scenario.expectedErrorType) {
-        expect(readme, `README is missing ${scenario.expectedErrorType}`).toContain(
-          scenario.expectedErrorType,
-        );
-      }
-    }
+    const catalog = readme.match(
+      /<!-- scenario-catalog:start -->\n([\s\S]*?)\n<!-- scenario-catalog:end -->/,
+    )?.[1];
+    const honesty = readme.match(
+      /<!-- not-simulatable:start -->\n([\s\S]*?)\n<!-- not-simulatable:end -->/,
+    )?.[1];
+    expect(catalog).toBe(scenarioMarkdownTable());
+    expect(honesty).toBe(notSimulatableMarkdownList());
   });
 
   it("keeps the honesty list non-empty and covering the known gaps", () => {

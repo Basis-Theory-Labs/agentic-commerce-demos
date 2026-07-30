@@ -18,7 +18,7 @@ export interface RequestPanelProps {
   auth: AuthMode;
   /** Omit for body-less requests. */
   defaultBody?: unknown;
-  /** Show an editable Idempotency-Key field with a regenerate button. */
+  /** Show an editable BT-IDEMPOTENCY-KEY field with a regenerate button. */
   idempotency?: boolean;
   /** Note rendered under the key field (the replay teachable moment). */
   idempotencyNote?: string;
@@ -65,6 +65,7 @@ export function RequestPanel({
   const [lastSentKey, setLastSentKey] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [problem, setProblem] = useState<ApiProblem | null>(null);
+  const sendingRef = useRef(false);
   const logger = useApiLog();
   const toast = useToast();
 
@@ -80,6 +81,7 @@ export function RequestPanel({
   }, [defaultJson]);
 
   const send = async () => {
+    if (sendingRef.current) return;
     setProblem(null);
     let parsed: unknown;
     try {
@@ -88,9 +90,18 @@ export function RequestPanel({
       setProblem({ title: "Request body is not valid JSON" });
       return;
     }
+    const usedKey = idemKey.trim();
+    if (idempotency && !usedKey) {
+      setProblem({
+        title: "BT-IDEMPOTENCY-KEY is required by this tester",
+        detail:
+          "The API permits keyless creates, but every retry would be a new operation. Regenerate a key before sending.",
+      });
+      return;
+    }
+    sendingRef.current = true;
     setSending(true);
     onSendStateChange?.(true);
-    const usedKey = idemKey.trim();
     try {
       const result = await callAgentic(
         {
@@ -126,6 +137,7 @@ export function RequestPanel({
         toast.error(error);
       }
     } finally {
+      sendingRef.current = false;
       setSending(false);
       onSendStateChange?.(false);
     }
@@ -166,7 +178,7 @@ export function RequestPanel({
         {idempotency && (
           <div>
             <label className="mb-1 block text-[11px] tracking-wide text-ink-500 uppercase">
-              Idempotency-Key
+              BT-IDEMPOTENCY-KEY
             </label>
             <div className="flex gap-1.5">
               <input
@@ -216,13 +228,24 @@ export function RequestPanel({
           >
             <div className="font-medium text-error">{problem.title ?? "Request failed"}</div>
             {problem.detail && <div className="text-ink-700">{problem.detail}</div>}
+            {problem.instance && (
+              <div className="font-mono text-[10px] break-all text-ink-500">
+                {problem.instance}
+              </div>
+            )}
             {problem.errors &&
               Object.entries(problem.errors).map(([field, messages]) => (
                 <div key={field} className="text-ink-700">
                   <span className="font-mono">{field}</span>: {messages.join("; ")}
                 </div>
               ))}
-            {problem.type && <div className="font-mono text-[10px] text-ink-500">{problem.type}</div>}
+            <div className="flex flex-wrap gap-2 font-mono text-[10px] text-ink-500">
+              {problem.status !== undefined && <span>HTTP {problem.status}</span>}
+              {problem.type && <span>{problem.type}</span>}
+              {problem.debug?.provider_correlation && (
+                <span>provider correlation: {problem.debug.provider_correlation}</span>
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -42,21 +42,29 @@ export function SetupScreen({
               are for) and needs the permissions{" "}
               <code className="bg-ink-100 px-1">token:create</code>,{" "}
               <code className="bg-ink-100 px-1">agentic:payment-method:create</code>,{" "}
-              <code className="bg-ink-100 px-1">agentic:allowance:verify</code>, and{" "}
-              <code className="bg-ink-100 px-1">agentic:allowance:get</code>.
+              and <code className="bg-ink-100 px-1">agentic:allowance:verify</code>. The
+              payment-method permission covers both create and rail retry; allowance reads stay
+              private.
             </p>
           </li>
           <li className={missingPrivate ? "" : "opacity-50"}>
             <div className="font-mono text-xs font-semibold text-ink-950">
               BT_API_KEY {missingPrivate ? "— missing" : "— configured ✓"}
             </div>
-            <p className="mt-1 text-xs text-ink-600">
-              A <b>private</b> application key. It never leaves the Next.js server and covers
-              payment-method management (
-              <code className="bg-ink-100 px-1">agentic:payment-method:*</code>), allowance
-              management (<code className="bg-ink-100 px-1">agentic:allowance:*</code>), and
-              credentials (<code className="bg-ink-100 px-1">agentic:credential:*</code>).
-            </p>
+            <div className="mt-1 text-xs text-ink-600">
+              A <b>private</b> application key. It never leaves the Next.js server and needs
+              exactly:
+              <ul className="mt-1 list-disc pl-5 font-mono text-[11px]">
+                <li>agentic:payment-method:get</li>
+                <li>agentic:payment-method:delete</li>
+                <li>agentic:allowance:create</li>
+                <li>agentic:allowance:get</li>
+                <li>agentic:allowance:update</li>
+                <li>agentic:allowance:delete</li>
+                <li>agentic:credential:create</li>
+                <li>agentic:credential:get</li>
+              </ul>
+            </div>
           </li>
         </ul>
 

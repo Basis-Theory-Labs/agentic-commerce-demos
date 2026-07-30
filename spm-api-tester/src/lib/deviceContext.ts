@@ -23,19 +23,20 @@ export function stableDeviceId(): string {
 }
 
 export function collectDeviceContext() {
-  return {
+  const context: Record<string, string | number | boolean> = {
     screen_height: window.screen.height,
     screen_width: window.screen.width,
     color_depth: window.screen.colorDepth,
     user_agent_string: navigator.userAgent,
-    // Already a BCP 47 tag — the API canonicalizes case but rejects
-    // underscore locales like en_US.
-    language_code: navigator.language,
-    // Browser-native IANA identifier, accepted directly.
-    time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     java_script_enabled: true,
     client_device_id: stableDeviceId(),
     client_reference_id: crypto.randomUUID(),
     platform_type: "WEB",
   };
+  // These optional fields are strictly validated. Locked-down webviews can
+  // report an empty value, which must be omitted rather than sent as "".
+  if (navigator.language) context.language_code = navigator.language;
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (timeZone) context.time_zone = timeZone;
+  return context;
 }

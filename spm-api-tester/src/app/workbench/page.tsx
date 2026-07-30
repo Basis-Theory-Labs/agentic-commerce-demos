@@ -11,6 +11,7 @@ import { CardTokenizePanel } from "@/components/CardTokenizePanel";
 import { ImportPanel } from "@/components/ImportPanel";
 import { MintPanel, AllowanceSummary } from "@/components/MintPanel";
 import { PaymentMethodCard } from "@/components/PaymentMethodCard";
+import { ProviderErrorList } from "@/components/ProviderErrorList";
 import { RequestPanel } from "@/components/RequestPanel";
 import { VerifyPanel } from "@/components/VerifyPanel";
 import { Button } from "@/components/ui/Button";
@@ -19,8 +20,9 @@ import { CopyChip } from "@/components/ui/CopyChip";
 import { callAgentic } from "@/lib/agenticClient";
 import { useApiLog } from "@/lib/apiLog";
 import { scenarioForAllowance, useSession, type AllowanceEntry } from "@/lib/session";
+import { existingOrFirst } from "@/lib/selection";
 import { useToast } from "@/lib/toast";
-import type { Allowance, PaymentMethod } from "@/lib/types";
+import type { Allowance, PaymentMethod, ProviderErrorPage } from "@/lib/types";
 
 export default function WorkbenchPage() {
   return (
@@ -104,7 +106,10 @@ function TokensSection() {
 function PaymentMethodsSection() {
   const { state, dispatch } = useSession();
   const [tokenId, setTokenId] = useState<string>("");
-  const effectiveTokenId = tokenId || state.tokens[0]?.id || "";
+  const effectiveTokenId = existingOrFirst(
+    tokenId,
+    state.tokens.map((token) => token.id),
+  );
   const tokenEntry = state.tokens.find((t) => t.id === effectiveTokenId);
 
   return (
@@ -178,7 +183,10 @@ function AllowancesSection() {
   const usablePms = state.paymentMethods.filter((p) =>
     p.resource.rails?.some((r) => r.status === "enabled"),
   );
-  const effectivePmId = pmId || usablePms[0]?.resource.id || "";
+  const effectivePmId = existingOrFirst(
+    pmId,
+    usablePms.map((pm) => pm.resource.id),
+  );
   const pmEntry = state.paymentMethods.find((p) => p.resource.id === effectivePmId);
 
   return (
@@ -247,7 +255,7 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
   const toast = useToast();
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [errors, setErrors] = useState<Record<string, unknown>[] | null>(null);
+  const [errors, setErrors] = useState<ProviderErrorPage | null>(null);
   const [retrying, setRetrying] = useState<Set<string>>(new Set());
   // A late retry response must not revert a just-cancelled allowance.
   const cancelled = useRef(allowance.status === "cancelled");
@@ -358,11 +366,11 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
           small
           onClick={async () => {
             try {
-              const result = await callAgentic<{ data: Record<string, unknown>[] }>(
+              const result = await callAgentic<ProviderErrorPage>(
                 { method: "GET", path: `/allowances/${allowance.id}/errors`, auth: "proxy" },
                 logger,
               );
-              setErrors(result.data ?? []);
+              setErrors({ ...result, data: result.data ?? [] });
             } catch (error) {
               toast.error(error);
             }
@@ -397,18 +405,10 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
 
       {errors && (
         <div className="border border-ink-200 bg-ink-50 p-2 text-xs">
-          {errors.length === 0 ? (
-            <p className="text-ink-500">No provider errors recorded for this allowance.</p>
-          ) : (
-            <ul className="space-y-1.5">
-              {errors.map((error, index) => (
-                <li key={index} className="font-mono text-[11px] text-ink-700">
-                  {String(error.code ?? "?")} ({String(error.provider ?? "")}) ·{" "}
-                  {String(error.detail ?? error.title ?? "")}
-                </li>
-              ))}
-            </ul>
-          )}
+          <ProviderErrorList
+            page={errors}
+            emptyLabel="No provider errors recorded for this allowance."
+          />
         </div>
       )}
     </div>
@@ -448,13 +448,16 @@ function AllowancePicker({
 function VerificationSection() {
   const { state } = useSession();
   const [alwId, setAlwId] = useState("");
-  const effectiveId = alwId || state.allowances[0]?.resource.id || "";
+  const effectiveId = existingOrFirst(
+    alwId,
+    state.allowances.map((allowance) => allowance.resource.id),
+  );
   const entry = state.allowances.find((a) => a.resource.id === effectiveId);
 
   return (
     <Section
       title="Verification"
-      lead="Pick any allowance and run either flow variant. Verify one manually and the next via SDK, then compare the transcripts in the inspector."
+      lead="Pick any allowance and run either flow variant. Compare the Manual wire timeline with the SDK's lifecycle events and typed failures in the inspector."
     >
       {entry ? (
         <>
@@ -474,12 +477,11 @@ function VerificationSection() {
 
 function CredentialsSection() {
   const { state } = useSession();
-  const logger = useApiLog();
-  const toast = useToast();
   const [alwId, setAlwId] = useState("");
-  const [credId, setCredId] = useState("");
-  const [fetchedMeta, setFetchedMeta] = useState<Record<string, unknown> | null>(null);
-  const effectiveId = alwId || state.allowances[0]?.resource.id || "";
+  const effectiveId = existingOrFirst(
+    alwId,
+    state.allowances.map((allowance) => allowance.resource.id),
+  );
   const entry = state.allowances.find((a) => a.resource.id === effectiveId);
 
   return (
@@ -495,55 +497,66 @@ function CredentialsSection() {
             entry={entry}
             scenarioPan={scenarioForAllowance(state, effectiveId)}
           />
-          <div>
-            <label className="mb-1 block text-[11px] tracking-wide text-ink-500 uppercase">
-              Look up a credential id on this allowance (metadata only)
-            </label>
-            <div className="flex gap-1.5">
-              <input
-                value={credId}
-                onChange={(e) => setCredId(e.target.value)}
-                placeholder="cred_…"
-                spellCheck={false}
-                className="min-w-0 flex-1 border border-ink-300 bg-white px-2 py-1.5 font-mono text-xs text-ink-900 focus:border-ink-900 focus:outline-none"
-              />
-              <Button
-                variant="ghost"
-                small
-                onClick={async () => {
-                  const id = credId.trim();
-                  if (!id.startsWith("cred_")) {
-                    toast.error(new Error("That doesn't look like a credential id (cred_…)."));
-                    return;
-                  }
-                  try {
-                    const meta = await callAgentic<Record<string, unknown>>(
-                      {
-                        method: "GET",
-                        path: `/allowances/${effectiveId}/credentials/${id}`,
-                        auth: "proxy",
-                      },
-                      logger,
-                    );
-                    setFetchedMeta(meta);
-                  } catch (error) {
-                    toast.error(error);
-                  }
-                }}
-              >
-                GET
-              </Button>
-            </div>
-            {fetchedMeta && (
-              <pre className="mt-2 max-h-48 overflow-auto border border-ink-200 bg-ink-50 p-2 font-mono text-[11px]">
-                {JSON.stringify(fetchedMeta, null, 2)}
-              </pre>
-            )}
-          </div>
+          <CredentialLookup key={effectiveId} allowanceId={effectiveId} />
         </>
       ) : (
         <Callout>No allowances in this session yet — create or import one above.</Callout>
       )}
     </Section>
+  );
+}
+
+function CredentialLookup({ allowanceId }: { allowanceId: string }) {
+  const logger = useApiLog();
+  const toast = useToast();
+  const [credId, setCredId] = useState("");
+  const [fetchedMeta, setFetchedMeta] = useState<Record<string, unknown> | null>(null);
+
+  return (
+    <div>
+      <label className="mb-1 block text-[11px] tracking-wide text-ink-500 uppercase">
+        Look up a credential id on this allowance (metadata only)
+      </label>
+      <div className="flex gap-1.5">
+        <input
+          value={credId}
+          onChange={(e) => setCredId(e.target.value)}
+          placeholder="cred_…"
+          spellCheck={false}
+          className="min-w-0 flex-1 border border-ink-300 bg-white px-2 py-1.5 font-mono text-xs text-ink-900 focus:border-ink-900 focus:outline-none"
+        />
+        <Button
+          variant="ghost"
+          small
+          onClick={async () => {
+            const id = credId.trim();
+            if (!id.startsWith("cred_")) {
+              toast.error(new Error("That doesn't look like a credential id (cred_…)."));
+              return;
+            }
+            try {
+              const meta = await callAgentic<Record<string, unknown>>(
+                {
+                  method: "GET",
+                  path: `/allowances/${allowanceId}/credentials/${id}`,
+                  auth: "proxy",
+                },
+                logger,
+              );
+              setFetchedMeta(meta);
+            } catch (error) {
+              toast.error(error);
+            }
+          }}
+        >
+          GET
+        </Button>
+      </div>
+      {fetchedMeta && (
+        <pre className="mt-2 max-h-48 overflow-auto border border-ink-200 bg-ink-50 p-2 font-mono text-[11px]">
+          {JSON.stringify(fetchedMeta, null, 2)}
+        </pre>
+      )}
+    </div>
   );
 }

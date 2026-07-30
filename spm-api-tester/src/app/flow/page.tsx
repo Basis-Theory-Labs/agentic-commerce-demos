@@ -109,7 +109,9 @@ function Flow() {
           onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
         >
           <CardTokenizePanel
-            onTokenized={(id) => setParams({ step: "payment-method", tok: id })}
+            onTokenized={(id) =>
+              setParams({ step: "payment-method", tok: id, pm: null, alw: null })
+            }
           />
         </StepShell>
       )}
@@ -123,8 +125,9 @@ function Flow() {
           <PaymentMethodStep
             tokenId={tokenId}
             pmId={pmId}
-            onTokenImported={(id) => setParams({ tok: id })}
-            onCreated={(pm) => setParams({ pm: pm.id })}
+            onTokenImported={(id) => setParams({ tok: id, pm: null, alw: null })}
+            onPaymentMethodImported={(id) => setParams({ pm: id, alw: null })}
+            onCreated={(pm) => setParams({ pm: pm.id, alw: null })}
             onContinue={() => setParams({ step: "allowance" })}
           />
         </StepShell>
@@ -133,13 +136,14 @@ function Flow() {
       {step === "allowance" && (
         <StepShell
           title="Grant an Allowance"
-          lead="The allowance is the mandate: how much, at which merchant, until when. Spend is burn-on-mint — every credential permanently draws from it."
+          lead="The allowance is the mandate: how much, at which merchant, until when. Issued credentials and unknown mint outcomes draw from it; conclusive mint failures release their reservation."
           onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
         >
           <AllowanceStep
             pmId={pmId}
             alwId={alwId}
-            onPmImported={(id) => setParams({ pm: id })}
+            onPmImported={(id) => setParams({ pm: id, alw: null })}
+            onAllowanceImported={(id) => setParams({ alw: id })}
             onCreated={(alw) => setParams({ alw: alw.id })}
             onContinue={(needsVerify) =>
               setParams({ step: needsVerify ? "verify" : "credentials" })
@@ -164,6 +168,7 @@ function Flow() {
             <MissingResource
               label="No allowance selected — create one in the Allowance step or import an id:"
               kind="allowance"
+              initialValue={alwId ?? ""}
               onImported={(id) => setParams({ alw: id })}
             />
           )}
@@ -180,7 +185,7 @@ function Flow() {
       {step === "credentials" && (
         <StepShell
           title="Mint Credentials"
-          lead="Each mint permanently draws from the allowance and needs an Idempotency-Key. Every credential value is returned exactly once — copy it from the reveal card."
+          lead="Each issued credential—and any unknown provider outcome—draws from the allowance; conclusive failures release their reservation. This tester sends a fresh BT-IDEMPOTENCY-KEY, and credential values are returned exactly once."
           onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
         >
           {alwEntry ? (
@@ -189,6 +194,7 @@ function Flow() {
             <MissingResource
               label="No allowance selected — create one first or import an id:"
               kind="allowance"
+              initialValue={alwId ?? ""}
               onImported={(id) => setParams({ alw: id })}
             />
           )}
@@ -230,16 +236,23 @@ function StepShell({
 function MissingResource({
   label,
   kind,
+  initialValue,
   onImported,
 }: {
   label: string;
   kind: "token" | "payment-method" | "allowance";
+  initialValue?: string;
   onImported: (id: string) => void;
 }) {
   return (
     <div className="space-y-2 border border-ink-200 bg-white p-4">
       <p className="text-xs text-ink-600">{label}</p>
-      <ImportPanel kind={kind} onImported={onImported} />
+      <ImportPanel
+        key={`${kind}:${initialValue ?? ""}`}
+        kind={kind}
+        initialValue={initialValue}
+        onImported={onImported}
+      />
     </div>
   );
 }
@@ -250,12 +263,14 @@ function PaymentMethodStep({
   tokenId,
   pmId,
   onTokenImported,
+  onPaymentMethodImported,
   onCreated,
   onContinue,
 }: {
   tokenId: string | null;
   pmId: string | null;
   onTokenImported: (id: string) => void;
+  onPaymentMethodImported: (id: string) => void;
   onCreated: (pm: PaymentMethod) => void;
   onContinue: () => void;
 }) {
@@ -264,11 +279,23 @@ function PaymentMethodStep({
   const pmEntry = findPaymentMethod(state, pmId);
   const tokenEntry = state.tokens.find((t) => t.id === tokenId);
 
+  if (pmId && !pmEntry) {
+    return (
+      <MissingResource
+        label="This deep-linked payment method is not in this session yet — import it:"
+        kind="payment-method"
+        initialValue={pmId}
+        onImported={onPaymentMethodImported}
+      />
+    );
+  }
+
   if (!tokenEntry && !pmEntry) {
     return (
       <MissingResource
         label="No card token selected — tokenize one in the Card step, or paste a token id:"
         kind="token"
+        initialValue={tokenId ?? ""}
         onImported={onTokenImported}
       />
     );
@@ -344,12 +371,14 @@ function AllowanceStep({
   pmId,
   alwId,
   onPmImported,
+  onAllowanceImported,
   onCreated,
   onContinue,
 }: {
   pmId: string | null;
   alwId: string | null;
   onPmImported: (id: string) => void;
+  onAllowanceImported: (id: string) => void;
   onCreated: (alw: Allowance) => void;
   onContinue: (needsVerify: boolean) => void;
 }) {
@@ -359,18 +388,30 @@ function AllowanceStep({
   const pmEntry = findPaymentMethod(state, pmId);
   const alwEntry = findAllowance(state, alwId);
 
+  if (alwId && !alwEntry) {
+    return (
+      <MissingResource
+        label="This deep-linked allowance is not in this session yet — import it:"
+        kind="allowance"
+        initialValue={alwId}
+        onImported={onAllowanceImported}
+      />
+    );
+  }
+
   if (!pmEntry && !alwEntry) {
     return (
       <MissingResource
         label="No payment method selected — create one in the previous step, or paste an id:"
         kind="payment-method"
+        initialValue={pmId ?? ""}
         onImported={onPmImported}
       />
     );
   }
 
   const agenticRail = alwEntry?.resource.rails?.find((r) => r.rail === "agentic-token");
-  const needsVerify = !!agenticRail && agenticRail.status !== "active";
+  const needsVerify = agenticRail?.status === "pending_verification";
 
   return (
     <>
@@ -413,6 +454,18 @@ function AllowanceStep({
       {alwEntry && (
         <>
           <AllowanceSummary allowance={alwEntry.resource} />
+          {agenticRail?.status === "error" && (
+            <Callout tone="warning">
+              The agentic-token rail failed setup
+              {agenticRail.error?.code ? (
+                <>
+                  {" "}
+                  (<code>{agenticRail.error.code}</code>)
+                </>
+              ) : null}
+              . Retry that rail from the Workbench before attempting verification.
+            </Callout>
+          )}
           <div className="flex flex-wrap gap-2">
             {needsVerify && (
               <Button onClick={() => onContinue(true)}>Continue → Verify Agentic Token</Button>

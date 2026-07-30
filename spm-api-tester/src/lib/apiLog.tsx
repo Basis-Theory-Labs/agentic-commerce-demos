@@ -1,6 +1,7 @@
 "use client";
 
-// Client-side API activity log backing the inspector. Every wire call the app
+// Client-side API activity log backing the inspector. Tester-owned wire calls
+// plus sanitized Elements activity and SDK lifecycle events
 // makes — direct browser fetches, proxied server calls (hydrated from the
 // X-BT-Trace header), Elements tokenization, and SDK activity — lands here.
 

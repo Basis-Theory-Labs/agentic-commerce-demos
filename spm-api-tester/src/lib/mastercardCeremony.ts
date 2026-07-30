@@ -68,19 +68,54 @@ export function isBridgeMessage(
  */
 export async function pollComplete(
   sendComplete: () => Promise<VerifyResponse>,
-  options: { attempts?: number; delayMs?: number; onPending?: (attempt: number) => void } = {},
+  options: {
+    attempts?: number;
+    delayMs?: number;
+    initialDelayMs?: number;
+    signal?: AbortSignal;
+    onPending?: (attempt: number) => void;
+  } = {},
 ): Promise<VerifyResponse> {
   const attempts = options.attempts ?? DEFAULT_POLL_ATTEMPTS;
   const delayMs = options.delayMs ?? DEFAULT_POLL_DELAY_MS;
+  const initialDelayMs = options.initialDelayMs ?? 0;
+
+  const wait = (ms: number) =>
+    new Promise<void>((resolve, reject) => {
+      const signal = options.signal;
+      if (signal?.aborted) {
+        const error = new Error("Mastercard completion polling was cancelled");
+        error.name = "AbortError";
+        reject(error);
+        return;
+      }
+      const onAbort = () => {
+        clearTimeout(timer);
+        const error = new Error("Mastercard completion polling was cancelled");
+        error.name = "AbortError";
+        reject(error);
+      };
+      const timer = setTimeout(() => {
+        signal?.removeEventListener("abort", onAbort);
+        resolve();
+      }, ms);
+      signal?.addEventListener("abort", onAbort, { once: true });
+    });
 
   let last: VerifyResponse | null = null;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    if (attempt === 1 && initialDelayMs > 0) await wait(initialDelayMs);
+    if (options.signal?.aborted) {
+      const error = new Error("Mastercard completion polling was cancelled");
+      error.name = "AbortError";
+      throw error;
+    }
     last = await sendComplete();
     if (last.status === "active" || last.next_action) return last;
     // Still pending: verification_required with nothing to do.
     options.onPending?.(attempt);
     if (attempt < attempts) {
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      await wait(delayMs);
     }
   }
   throw new Error(

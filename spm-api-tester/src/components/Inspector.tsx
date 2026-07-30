@@ -4,10 +4,9 @@ import { useEffect, useState } from "react";
 import { useApiLog, type CallEntry, type CallSource } from "@/lib/apiLog";
 import { CopyChip } from "@/components/ui/CopyChip";
 
-// Inspector: every wire call this session, newest first, nothing force-
-// collapsed. Source pills make the key-placement story visible — which calls
-// ran in the browser with the public key, which went through the server
-// proxy with the private key, and which came from Elements or the SDK.
+// Inspector: full wire details for tester-owned browser/proxy calls plus
+// sanitized Elements activity and SDK lifecycle events, newest first. Source
+// pills make the key-placement and execution-boundary story visible.
 
 const SOURCE_LABEL: Record<CallSource, string> = {
   browser: "browser · public key",
@@ -43,7 +42,7 @@ export default function Inspector() {
         onClick={() => setOpen((v) => !v)}
         className="fixed right-4 bottom-4 z-40 flex items-center gap-2 bg-ink-900 px-4 py-2.5 text-sm font-medium text-white shadow-lg hover:bg-ink-700"
         aria-expanded={open}
-        aria-label={`${open ? "Hide" : "Show"} API inspector (${entries.length} calls)`}
+        aria-label={`${open ? "Hide" : "Show"} API inspector (${entries.length} activity entries)`}
       >
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -90,7 +89,8 @@ export default function Inspector() {
         <div className="h-[calc(100%-48px)] space-y-2 overflow-y-auto p-3">
           {entries.length === 0 ? (
             <div className="py-12 text-center text-sm text-ink-500">
-              No API activity yet — every call will appear here.
+              No activity yet — Manual API calls, Elements activity, and SDK lifecycle events
+              appear here.
             </div>
           ) : (
             [...entries].reverse().map((entry, reverseIndex) => (

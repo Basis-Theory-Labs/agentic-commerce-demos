@@ -7,10 +7,11 @@ Model (SPM)**:
 card token → payment method → allowance → verification → credentials
 ```
 
-Every wire call is visible and copyable, and every write is editable. Two modes (a guided
-five-step flow and a freeform workbench), two verification variants (raw API
-or the `@basis-theory/web-agentic` SDK), and full coverage of the
-mock test-card scenarios.
+Tester-owned Manual API calls are visible and copyable, and their writes are
+editable. Elements activity and SDK lifecycle events are logged in sanitized
+form. Two modes (a guided five-step flow and a freeform workbench), two
+verification variants (raw API or the `@basis-theory/web-agentic` SDK), and
+full coverage of the mock test-card scenarios.
 
 ## Architecture
 
@@ -19,9 +20,9 @@ mock test-card scenarios.
                         │                 Browser                    │
                         │                                            │
    Elements (iframe) ◄──┤ tokenize card            public key        │
-                        │ POST /payment-methods    public key ───────┼──► Basis Theory
+                        │ POST /payment-methods (+ rails/retry)       │
+                        │                           public key ───────┼──► Basis Theory
                         │ POST /allowances/:id/verify (all actions)  │    Agentic API
-                        │ GET  /allowances/:id     public key ───────┼──►
                         │                                            │
                         │ everything else ──► Next.js proxy          │
                         └──────────────────────────┬─────────────────┘
@@ -29,18 +30,18 @@ mock test-card scenarios.
                                      /api/agentic/[...path]
                                                    │
                                                    ▼
-                          allowance create / PATCH / DELETE / rails retry,
-                          credential mint / list / get, /errors lists
+                          resource reads, allowance create / PATCH / DELETE /
+                          rails retry, credential mint / list / get, /errors
 ```
 
-- **Public key** (browser): card tokenization, payment-method creation, every
-  verify action, allowance reads. This is the same key model the SDK and
+- **Public key** (browser): card tokenization, payment-method create/retry,
+  and every allowance verify action. This is the same key model the SDK and
   Elements use — public application keys are browser-safe by design.
-- **Private key** (server only): allowance management and credential minting
-  go through the Next.js route handler, which attaches the key server-side
-  and summarizes the real upstream exchange into a base64 `X-BT-Trace`
-  response header for the inspector. **`X-BT-Trace` is a demo affordance — do
-  not ship it in a production integration.**
+- **Private key** (server only): resource reads, allowance management, and
+  credential minting go through the Next.js route handler, which attaches the
+  key server-side and summarizes the real upstream exchange into a base64
+  `X-BT-Trace` response header for the inspector. **`X-BT-Trace` is a demo
+  affordance — do not ship it in a production integration.**
 
 ## Setup
 
@@ -57,8 +58,8 @@ You need **two** Basis Theory applications:
 
 | Key | Env var | Required permissions |
 | --- | --- | --- |
-| Public | `NEXT_PUBLIC_BT_API_KEY` | `token:create`, `agentic:payment-method:create`, `agentic:allowance:verify`, `agentic:allowance:get` |
-| Private | `BT_API_KEY` | `agentic:allowance:*`, `agentic:credential:*`, `agentic:payment-method:*` |
+| Public | `NEXT_PUBLIC_BT_API_KEY` | `token:create`, `agentic:payment-method:create`, `agentic:allowance:verify` |
+| Private | `BT_API_KEY` | `agentic:payment-method:get`, `agentic:payment-method:delete`, `agentic:allowance:create`, `agentic:allowance:get`, `agentic:allowance:update`, `agentic:allowance:delete`, `agentic:credential:create`, `agentic:credential:get` |
 
 Environment variables (see `.env.example` for full comments):
 
@@ -68,15 +69,22 @@ Environment variables (see `.env.example` for full comments):
 | `NEXT_PUBLIC_BT_API_KEY` | Public key — browser calls |
 | `BT_AGENTIC_API_URL` / `NEXT_PUBLIC_BT_AGENTIC_API_URL` | Agentic API base, server / browser. Deployed test: `https://api.test.basistheory.com/agentic` |
 | `NEXT_PUBLIC_BT_VAULT_API_URL` | Vault base for browser tokenization |
-| `BT_TENANT_TYPE` | `test` enables mock cards and test-only shortcuts |
+| `BT_TENANT_TYPE` | Only exact `test` enables mock defaults and test-only shortcuts; missing/other values fail closed to production behavior |
 | `BT_DISPLAY_NAME` | Name the card networks show to cardholders |
-| `NEXT_PUBLIC_BT_VISA_ENVIRONMENT` (+ `NEXT_PUBLIC_BT_VISA_SANDBOX_*`) | Optional Visa sandbox override — no network credentials live in source |
+| `NEXT_PUBLIC_BT_VISA_ENVIRONMENT` (+ `NEXT_PUBLIC_BT_VISA_SANDBOX_*`) | Optional Visa sandbox override for the Manual variant — no network credentials live in source; the current SDK exposes no equivalent override |
 
 ### Local agentic-commerce API
 
-The locally-run service mounts its routes under `/api` — note the suffix:
+Both projects default to port 3000, so start `agentic-commerce` on 3001 when
+running it alongside this tester. Its routes mount under `/api`:
+
+```bash
+# in agentic-commerce
+PORT=3001 npm run dev
+```
 
 ```dotenv
+# in this tester's .env.local
 BT_AGENTIC_API_URL=http://localhost:3001/api
 NEXT_PUBLIC_BT_AGENTIC_API_URL=http://localhost:3001/api
 ```
@@ -110,34 +118,45 @@ NEXT_PUBLIC_BT_AGENTIC_API_URL=http://localhost:3001/api
 - **Manual vs SDK** — a persistent toggle. Manual walks every verify action as
   an editable JSON request, with the `submit_session` and `submit_passkey`
   bodies pre-filled from real ceremony results. SDK collapses
-  the same verification into one `verifyAllowance()` call with the SDK's own
-  UI. Both operate on the same allowances — verify one each way and compare
-  transcripts in the inspector.
+  the same verification into one `verifyAllowance(id, { provider })` call with
+  the SDK's own UI. The provider comes from the allowance rail and is never
+  inferred from card brand. Both variants operate on the same allowances.
+  Compare the Manual wire timeline with the SDK's lifecycle events and typed
+  failures in the inspector; the SDK owns its internal HTTP transport.
 
 ## Test scenarios
 
-All from `src/lib/scenarios.ts` — the picker and the step reminder chips
-render from it, and a unit test keeps this table in sync with it.
+All from `src/lib/scenarios.ts` — the picker and step reminder chips render
+from it, while exact-output tests keep the two checked-in Markdown blocks
+below byte-for-byte aligned with the module.
 
-| PAN | Brand | Scenario (manifests at) |
-| --- | --- | --- |
-| `4242 4242 4242 4242` | Visa | Happy path: OTP → REGISTER passkey → restart → AUTHENTICATE (Verify) |
-| `4929 9803 9556 7582` | Visa | Every `submit_otp` → 400 `INVALID_OTP` (Verify) |
-| `5555 5555 5555 4444` | Mastercard | Happy path: hosted ceremony → `complete` (Verify) |
-| `5186 1600 0000 0001` | Mastercard | agentic-token rail rejected at creation (`CARD_REJECTED`); spt still usable (Payment Method) |
-| `5186 1600 0000 0003` | Mastercard | Ceremony runs, `complete` → 422 `PROVIDER_VERIFICATION_FAILED` (Verify) |
-| `4000 0000 0000 0002` | Visa | spt rail rejected (`CARD_REJECTED`); retry stays rejected (Payment Method) |
-| `4000 0000 0000 0119` | Visa | spt rail errors (`PROVIDER_ENROLLMENT_FAILED`); rails retry succeeds (Payment Method) |
-| `4000 0000 0000 0341` | Visa | spt mint → 422 `PROVIDER_CREDENTIALS_FAILED`, reservation released (Credentials) |
-| `4000 0000 0000 9995` | Visa | spt mint → 409 `CREDENTIAL_OUTCOME_UNKNOWN`, reservation burned to `amount_spent` (Credentials) |
+<!-- scenario-catalog:start -->
+| PAN | Brand | Scenario (manifests at) | Stable error code |
+| --- | --- | --- | --- |
+| `4242 4242 4242 4242` | Visa | Visa verification succeeds: OTP, REGISTER passkey, restart, AUTHENTICATE passkey. (Verify) | — |
+| `4929 9803 9556 7582` | Visa | Every submit_otp attempt fails with 400 INVALID_OTP. (Verify) | `INVALID_OTP` |
+| `5555 5555 5555 4444` | Mastercard | Mastercard verification succeeds: hosted ceremony, then complete. (Verify) | — |
+| `5186 1600 0000 0001` | Mastercard | Mastercard rejects the agentic-token rail at creation (CARD_REJECTED); the spt rail stays usable. (Payment Method) | `CARD_REJECTED` |
+| `5186 1600 0000 0003` | Mastercard | The Mastercard ceremony runs, but the complete action fails with 422. (Verify) | `PROVIDER_VERIFICATION_FAILED` |
+| `4000 0000 0000 0002` | Visa | Stripe rejects the spt rail at creation (CARD_REJECTED); retrying keeps failing. (Payment Method) | `CARD_REJECTED` |
+| `4000 0000 0000 0119` | Visa | The spt rail fails on create (PROVIDER_ENROLLMENT_FAILED); a rails retry enables it. (Payment Method) | `PROVIDER_ENROLLMENT_FAILED` |
+| `4000 0000 0000 0341` | Visa | spt credential mint fails with 422 PROVIDER_CREDENTIALS_FAILED; the spend reservation is released. (Credentials) | `PROVIDER_CREDENTIALS_FAILED` |
+| `4000 0000 0000 9995` | Visa | spt credential mint ends in an unknown provider outcome (409); the reservation is burned to amount_spent. (Credentials) | `CREDENTIAL_OUTCOME_UNKNOWN` |
+<!-- scenario-catalog:end -->
 
 Any other Visa or Mastercard PAN follows that brand's happy path.
 
 **Not simulatable with test cards** (the mocks cannot produce these — don't
-spend an afternoon trying): `MAX_ATTEMPTS_EXCEEDED`, `PASSKEY_FAILED`,
-Mastercard `PENDING` on `complete` (the bounded poll ships anyway), an `error`
-**allowance** rail (so allowance rails/retry can't be demoed),
-`NO_ACTIVE_RAILS`, and Visa enrollment failure.
+spend an afternoon trying):
+
+<!-- not-simulatable:start -->
+- MAX_ATTEMPTS_EXCEEDED — the mock accepts unlimited OTP attempts
+- PASSKEY_FAILED — the mock passkey ceremony always succeeds
+- Mastercard PENDING on complete — the mock resolves immediately (real Mastercard can return pending; the bounded poll ships anyway)
+- An `error` allowance rail — allowance rails/retry cannot be demonstrated
+- NO_ACTIVE_RAILS — mock allowances always provision at least one rail
+- Visa enrollment failure at payment-method creation
+<!-- not-simulatable:end -->
 
 Beyond PANs, the UI exposes: the test-tenant ceremony shortcut
 (`submit_passkey` with a stub body), Mastercard `complete` without the
@@ -147,14 +166,24 @@ idempotency replays (same key + same body → 409
 `IDEMPOTENCY_CONFLICT`), amount overdraw, currency mismatch, and two MPP
 field-validation failures.
 
+### Unknown outcomes and reconciliation
+
+`CREDENTIAL_OUTCOME_UNKNOWN` is terminal: the attempted amount is committed to
+`amount_spent`, and no spendable payload can be recovered. Resending the
+original `BT-IDEMPOTENCY-KEY` deterministically replays the same terminal error;
+it cannot recover or re-mint. The API has no credential reconcile or release
+endpoint. Sending a new key is a distinct mint attempt and can spend again; it
+does not reconcile the first one.
+
 ## The inspector
 
-Every wire call lands in the slide-in inspector: source pill (`browser` /
-`server` / `elements` / `sdk` — the key-placement story made visible), method
-and path, verify-action tag, status, duration, expandable request/response
-with copy buttons, `bt-trace-id`, and copy-as-curl (key redacted as
-`$BT_API_KEY`). Server rows are hydrated from the proxy's `X-BT-Trace` header
-— again: a demo affordance, not something to ship.
+Tester-owned browser and server calls land in the slide-in inspector with a
+source pill, method/path, verify-action tag, status, duration, expandable
+request/response, `bt-trace-id`, and copy-as-curl (key redacted as
+`$BT_API_KEY`). Elements rows are sanitized operation summaries; SDK rows are
+lifecycle events and typed failures, not reconstructed internal wire
+transcripts. Server rows are hydrated from the proxy's `X-BT-Trace` header —
+again: a demo affordance, not something to ship.
 
 ## Project layout
 
@@ -193,6 +222,10 @@ src/lib/*.test.ts                 The vitest suite
 - **Popup blocked** — allow popups; ceremonies must open from a click.
 - **409 `ALLOWANCE_VERIFICATION_IN_PROGRESS`** — verify calls are serialized
   per allowance; wait a moment and retry (server leases expire).
-- **409 on a credential mint replay** — that's the feature: payloads are
-  returned exactly once. Regenerate the key to mint again.
-- **Local API 404s** — remember the `/api` suffix on `http://localhost:3001/api`.
+- **409 `CREDENTIAL_PAYLOAD_UNAVAILABLE` on a successful mint replay** — the
+  payload was already returned and cannot be replayed. A new key is a distinct
+  mint that can spend again; it never recovers the old payload. Conclusive
+  failures release their reservation, while `CREDENTIAL_OUTCOME_UNKNOWN`
+  commits spend and must not be retried as recovery.
+- **Local API 404s** — start `agentic-commerce` with `PORT=3001`, then remember
+  the `/api` suffix on `http://localhost:3001/api`.

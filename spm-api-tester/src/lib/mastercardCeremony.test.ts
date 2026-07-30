@@ -4,6 +4,7 @@ import {
   bridgeOrigins,
   isBridgeMessage,
   isSafeCeremonyUrl,
+  openMastercardCeremony,
   pollComplete,
 } from "./mastercardCeremony";
 import type { VerifyResponse } from "./types";
@@ -64,6 +65,46 @@ describe("isBridgeMessage — the bridge posts with targetOrigin '*'", () => {
   });
 });
 
+describe("openMastercardCeremony", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("opens synchronously and settles only for the origin/source-checked cue", async () => {
+    const popup = {
+      closed: false,
+      close: vi.fn(() => {
+        popup.closed = true;
+      }),
+    };
+    const open = vi.spyOn(window, "open").mockReturnValue(popup as unknown as Window);
+    const handle = openMastercardCeremony("https://api.test.basistheory.com/mock", [
+      "https://api.test.basistheory.com",
+    ]);
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(handle).not.toBeNull();
+
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        origin: "https://api.test.basistheory.com",
+        source: popup as unknown as Window,
+        data: { type: BRIDGE_MESSAGE_TYPE },
+      }),
+    );
+    await expect(handle!.settled).resolves.toBe("message");
+    expect(popup.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns null when the popup is blocked or the URL is unsafe", () => {
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    expect(
+      openMastercardCeremony("https://api.test.basistheory.com/mock", [
+        "https://api.test.basistheory.com",
+      ]),
+    ).toBeNull();
+    expect(openMastercardCeremony("javascript:alert(1)", [])).toBeNull();
+    expect(open).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("pollComplete — the cue is not a result", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
@@ -92,6 +133,19 @@ describe("pollComplete — the cue is not a result", () => {
     await vi.advanceTimersByTimeAsync(2000);
     await expect(result).resolves.toEqual(active);
     expect(send).toHaveBeenCalledTimes(3);
+  });
+
+  it("aborts an initial pending delay without sending another complete", async () => {
+    const controller = new AbortController();
+    const send = vi.fn();
+    const result = pollComplete(send, {
+      initialDelayMs: 2_000,
+      signal: controller.signal,
+    });
+    const assertion = expect(result).rejects.toMatchObject({ name: "AbortError" });
+    controller.abort();
+    await assertion;
+    expect(send).not.toHaveBeenCalled();
   });
 
   it("stops after the bounded number of attempts", async () => {

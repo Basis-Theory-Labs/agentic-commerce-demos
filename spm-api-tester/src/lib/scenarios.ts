@@ -1,6 +1,7 @@
 // Single source of truth for the SPM test-PAN catalog. The card picker, the
-// step-level reminder chips, and the README scenario table all render from
-// this module — edit it here and every surface stays in sync.
+// step-level reminder chips, and the README's generated catalog blocks all
+// derive from this module. Exact-output tests stop the checked-in README from
+// drifting.
 //
 // Verified against agentic-commerce mock providers:
 //   src/providers/rails/mock-verification.js, src/providers/{visa,mastercard,stripe}/mock-*.js
@@ -22,8 +23,8 @@ export interface CardScenario {
   description: string;
   /** Where the scenario manifests, and what to expect there. */
   manifestsAt: ScenarioStage;
-  /** RFC 7807 error `type` the scenario produces, if it produces one. */
-  expectedErrorType?: string;
+  /** Stable HTTP problem `type` or rail `error.code` produced by the scenario. */
+  expectedErrorCode?: string;
   /** Reminder chip copy surfaced at the manifesting step. */
   reminder: string;
 }
@@ -46,7 +47,7 @@ export const CARD_SCENARIOS: CardScenario[] = [
     tone: "error",
     description: "Every submit_otp attempt fails with 400 INVALID_OTP.",
     manifestsAt: "verify",
-    expectedErrorType: "INVALID_OTP",
+    expectedErrorCode: "INVALID_OTP",
     reminder:
       "You picked the invalid-OTP card: every submit_otp will 400 with INVALID_OTP, no matter the code.",
   },
@@ -68,7 +69,7 @@ export const CARD_SCENARIOS: CardScenario[] = [
     description:
       "Mastercard rejects the agentic-token rail at creation (CARD_REJECTED); the spt rail stays usable.",
     manifestsAt: "payment-method",
-    expectedErrorType: "CARD_REJECTED",
+    expectedErrorCode: "CARD_REJECTED",
     reminder:
       "You picked the network-rejected card: the agentic-token rail reports error CARD_REJECTED; spt remains enabled.",
   },
@@ -79,7 +80,7 @@ export const CARD_SCENARIOS: CardScenario[] = [
     tone: "error",
     description: "The Mastercard ceremony runs, but the complete action fails with 422.",
     manifestsAt: "verify",
-    expectedErrorType: "PROVIDER_VERIFICATION_FAILED",
+    expectedErrorCode: "PROVIDER_VERIFICATION_FAILED",
     reminder:
       "You picked the complete-failure card: the ceremony will look fine, then `complete` 422s with PROVIDER_VERIFICATION_FAILED.",
   },
@@ -91,7 +92,7 @@ export const CARD_SCENARIOS: CardScenario[] = [
     description:
       "Stripe rejects the spt rail at creation (CARD_REJECTED); retrying keeps failing.",
     manifestsAt: "payment-method",
-    expectedErrorType: "CARD_REJECTED",
+    expectedErrorCode: "CARD_REJECTED",
     reminder:
       "You picked the spt-rejected card: the spt rail reports error CARD_REJECTED and retry stays rejected.",
   },
@@ -103,7 +104,7 @@ export const CARD_SCENARIOS: CardScenario[] = [
     description:
       "The spt rail fails on create (PROVIDER_ENROLLMENT_FAILED); a rails retry enables it.",
     manifestsAt: "payment-method",
-    expectedErrorType: "PROVIDER_ENROLLMENT_FAILED",
+    expectedErrorCode: "PROVIDER_ENROLLMENT_FAILED",
     reminder:
       "You picked the retry-succeeds card: the spt rail errors on create — send a rails retry and watch it flip to enabled.",
   },
@@ -115,7 +116,7 @@ export const CARD_SCENARIOS: CardScenario[] = [
     description:
       "spt credential mint fails with 422 PROVIDER_CREDENTIALS_FAILED; the spend reservation is released.",
     manifestsAt: "credentials",
-    expectedErrorType: "PROVIDER_CREDENTIALS_FAILED",
+    expectedErrorCode: "PROVIDER_CREDENTIALS_FAILED",
     reminder:
       "You picked the credential-error card: this spt mint will 422 with PROVIDER_CREDENTIALS_FAILED and the reservation is released — amount_available recovers.",
   },
@@ -127,9 +128,9 @@ export const CARD_SCENARIOS: CardScenario[] = [
     description:
       "spt credential mint ends in an unknown provider outcome (409); the reservation is burned to amount_spent.",
     manifestsAt: "credentials",
-    expectedErrorType: "CREDENTIAL_OUTCOME_UNKNOWN",
+    expectedErrorCode: "CREDENTIAL_OUTCOME_UNKNOWN",
     reminder:
-      "You picked the unknown-outcome card: this spt mint 409s and the reserved amount is burned to amount_spent — no release, no retry.",
+      "You picked the unknown-outcome card: this spt mint 409s and the reserved amount is burned to amount_spent. The original key is terminal; a new key is a distinct mint attempt.",
   },
 ];
 
@@ -157,4 +158,36 @@ export function findScenario(pan: string): CardScenario | undefined {
 /** Scenarios whose payoff lands at the given step, for reminder chips. */
 export function scenariosAt(stage: ScenarioStage): CardScenario[] {
   return CARD_SCENARIOS.filter((s) => s.manifestsAt === stage);
+}
+
+export function formatScenarioPan(pan: string): string {
+  return pan.replace(/(\d{4})(?=\d)/g, "$1 ");
+}
+
+const README_STAGE: Record<ScenarioStage, string> = {
+  "payment-method": "Payment Method",
+  verify: "Verify",
+  credentials: "Credentials",
+};
+
+/** Markdown generated from the catalog for the checked-in README block. */
+export function scenarioMarkdownTable(): string {
+  const rows = CARD_SCENARIOS.map(
+    (scenario) =>
+      `| \`${formatScenarioPan(scenario.pan)}\` | ${
+        scenario.brand === "visa" ? "Visa" : "Mastercard"
+      } | ${scenario.description} (${README_STAGE[scenario.manifestsAt]}) | ${
+        scenario.expectedErrorCode ? `\`${scenario.expectedErrorCode}\`` : "—"
+      } |`,
+  );
+  return [
+    "| PAN | Brand | Scenario (manifests at) | Stable error code |",
+    "| --- | --- | --- | --- |",
+    ...rows,
+  ].join("\n");
+}
+
+/** Markdown generated from the same honesty list rendered in VerifyPanel. */
+export function notSimulatableMarkdownList(): string {
+  return NOT_SIMULATABLE.map((item) => `- ${item}`).join("\n");
 }

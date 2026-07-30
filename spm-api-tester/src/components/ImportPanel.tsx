@@ -26,11 +26,14 @@ const KIND_CONFIG: Record<
 export function ImportPanel({
   kind,
   onImported,
+  initialValue = "",
 }: {
   kind: Kind;
   onImported?: (id: string) => void;
+  /** Prefill a deep-linked resource id so a fresh session can import it. */
+  initialValue?: string;
 }) {
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialValue);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { dispatch } = useSession();
@@ -67,7 +70,7 @@ export function ImportPanel({
         dispatch({ type: "upsertPaymentMethod", entry: { resource, imported: true } });
       } else {
         const resource = await callAgentic<Allowance>(
-          { method: "GET", path: `/allowances/${id}`, auth: "public" },
+          { method: "GET", path: `/allowances/${id}`, auth: "proxy" },
           logger,
         );
         dispatch({ type: "upsertAllowance", entry: { resource, imported: true } });

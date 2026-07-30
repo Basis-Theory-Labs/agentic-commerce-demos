@@ -32,14 +32,14 @@ export function RailChips({ rails }: { rails?: Rail[] }) {
       {rails.map((rail) => (
         <span
           key={`${rail.rail}-${rail.provider ?? ""}`}
-          title={rail.error?.detail || rail.error?.title}
+          title={rail.error?.code}
           className="inline-flex items-center gap-1.5 border border-ink-200 bg-white px-2 py-1 text-[11px]"
         >
           <span className="font-mono font-semibold text-ink-900">{rail.rail}</span>
           {rail.provider && <span className="text-ink-500">· {rail.provider}</span>}
           <StatusPill status={rail.status} />
-          {rail.status === "error" && rail.error?.type && (
-            <span className="font-mono text-[10px] text-error">{rail.error.type}</span>
+          {rail.status === "error" && rail.error?.code && (
+            <span className="font-mono text-[10px] text-error">{rail.error.code}</span>
           )}
         </span>
       ))}

@@ -1,8 +1,9 @@
 "use client";
 
 // Hand-rolled toast layer. Success toasts confirm resource creation (with a
-// copyable id); error toasts render the full RFC 7807 problem — title,
-// detail, per-field errors, error `type`, and the `bt-trace-id` for support.
+// copyable id); error toasts render the RFC 7807 problem — status, title,
+// detail, instance, per-field errors, error `type`, provider correlation,
+// and the `bt-trace-id` for support.
 
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import type { ApiProblem } from "@/lib/types";
@@ -145,6 +146,7 @@ function Toast({
         ? "border-success"
         : "border-ink-300";
   const fieldErrors = toast.problem?.errors;
+  const providerCorrelation = toast.problem?.debug?.provider_correlation;
 
   return (
     // Deliberately NOT a live region — announcements come from the dedicated
@@ -162,6 +164,11 @@ function Toast({
         <div className="min-w-0 flex-1">
           <div className="font-medium text-ink-950">{toast.title}</div>
           {toast.detail && <div className="mt-1 text-xs text-ink-600">{toast.detail}</div>}
+          {toast.problem?.instance && (
+            <div className="mt-1 font-mono text-[10px] break-all text-ink-500">
+              {toast.problem.instance}
+            </div>
+          )}
           {fieldErrors && Object.keys(fieldErrors).length > 0 && (
             <ul className="mt-1.5 space-y-0.5">
               {Object.entries(fieldErrors).map(([field, messages]) => (
@@ -172,9 +179,19 @@ function Toast({
             </ul>
           )}
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            {toast.problem?.status !== undefined && (
+              <span className="border border-ink-200 bg-ink-50 px-1.5 py-0.5 font-mono text-[10px] text-ink-700">
+                HTTP {toast.problem.status}
+              </span>
+            )}
             {toast.problem?.type && (
               <span className="border border-ink-200 bg-ink-50 px-1.5 py-0.5 font-mono text-[10px] text-ink-700">
                 {toast.problem.type}
+              </span>
+            )}
+            {providerCorrelation && (
+              <span className="flex items-center gap-1 text-[10px] text-ink-500">
+                provider correlation: <CopyChip value={providerCorrelation} />
               </span>
             )}
             {toast.copy && <CopyChip value={toast.copy.value} label={toast.copy.label} />}

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // Server-side proxy for the operations that require the PRIVATE key
-// (allowance create/patch/cancel, rails retry, credential mint/list/get,
-// /errors). Browser-safe operations (tokenize, create payment method,
-// verify) never come through here — they hit the API directly with the
-// public key.
+// (resource reads, allowance create/patch/cancel/rails retry, credential
+// mint/list/get, /errors). Browser-safe operations (tokenize, payment-method
+// create/rails retry, allowance verify) never come through here — they hit
+// the API directly with the public key.
 //
 // Every proxied exchange is summarized into a base64 `X-BT-Trace` response
 // header so the client-side inspector can show the real upstream call. This
@@ -83,8 +83,8 @@ export async function proxyAgentic(request: NextRequest, path: string[]) {
       ...(rawBody !== undefined
         ? { "Content-Type": request.headers.get("content-type") || "application/json" }
         : {}),
-      ...(request.headers.get("idempotency-key")
-        ? { "Idempotency-Key": request.headers.get("idempotency-key")! }
+      ...(request.headers.get("bt-idempotency-key")
+        ? { "BT-IDEMPOTENCY-KEY": request.headers.get("bt-idempotency-key")! }
         : {}),
     },
     body: rawBody,

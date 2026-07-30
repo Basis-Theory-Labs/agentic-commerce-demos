@@ -39,6 +39,18 @@ describe("buildCurl", () => {
     expect(curl).not.toContain("secret123");
     expect(curl).toContain("curl -X POST");
   });
+
+  it("shell-quotes editable URL and header values", () => {
+    const curl = buildCurl({
+      method: "POST",
+      url: "https://example.test/o'hare",
+      headers: { "BT-IDEMPOTENCY-KEY": "key'; touch /tmp/nope; echo '" },
+      body: { note: "shopper's request" },
+    });
+    expect(curl).toContain("'https://example.test/o'\\''hare'");
+    expect(curl).toContain("'BT-IDEMPOTENCY-KEY: key'\\''; touch /tmp/nope; echo '\\'''");
+    expect(curl).toContain(`"shopper'\\''s request"`);
+  });
 });
 
 describe("parseProblem", () => {
@@ -82,7 +94,7 @@ describe("callAgentic", () => {
     expect((init.headers as Record<string, string>)["BT-API-KEY"]).toBeUndefined();
   });
 
-  it("forwards the Idempotency-Key header when given", async () => {
+  it("forwards the BT-IDEMPOTENCY-KEY header when given", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ id: "cred_1" }));
     await callAgentic({
       method: "POST",
@@ -92,7 +104,7 @@ describe("callAgentic", () => {
       idempotencyKey: "key-123",
     });
     const [, init] = fetchMock.mock.calls[0];
-    expect((init.headers as Record<string, string>)["Idempotency-Key"]).toBe("key-123");
+    expect((init.headers as Record<string, string>)["BT-IDEMPOTENCY-KEY"]).toBe("key-123");
   });
 
   it("throws AgenticApiError with the parsed RFC 7807 body and trace id", async () => {
@@ -145,6 +157,35 @@ describe("callAgentic", () => {
     expect(entry.duration_ms).toBe(42);
     expect(entry.request).toEqual({ upstream: true });
     expect(entry.pending).toBe(false);
+    expect(entry.curl).toContain("BT-API-KEY: $BT_API_KEY");
+  });
+
+  it("redacts one-time credential values even when the proxy trace is absent", async () => {
+    const response = {
+      id: "cred_1",
+      credential: {
+        format: "card",
+        value: { number: "4111111111111111", cvc: "123" },
+      },
+    };
+    fetchMock.mockResolvedValue(jsonResponse(response, { status: 201 }));
+    const { logger, entries } = collectingLogger();
+
+    const result = await callAgentic<typeof response>(
+      {
+        method: "POST",
+        path: "/allowances/alw_1/credentials",
+        body: { credential: { format: "card" } },
+        auth: "proxy",
+      },
+      logger,
+    );
+
+    expect(result.credential.value).toEqual(response.credential.value);
+    expect(Object.values(entries)[0].response).toMatchObject({
+      credential: { value: "[redacted — revealed once in the UI]" },
+    });
+    expect(JSON.stringify(Object.values(entries)[0])).not.toContain("4111111111111111");
   });
 
   it("marks the log entry failed when fetch itself rejects", async () => {

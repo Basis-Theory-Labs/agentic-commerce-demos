@@ -22,8 +22,8 @@ function Landing() {
       <h1 className="text-3xl font-semibold">SPM API Tester</h1>
       <p className="mt-2 max-w-2xl text-sm text-ink-600">
         Walk the Basis Theory Shared Payment Model end to end — card token → payment method →
-        allowance → verification → credentials — with every wire call visible, editable, and
-        copyable.
+        allowance → verification → credentials. Manual API requests are visible, editable, and
+        copyable; Elements and SDK activity is shown as sanitized events.
       </p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -56,8 +56,8 @@ function Landing() {
           Run verification step by step against the raw API, or collapse it into the one call a
           customer would ship with{" "}
           <code className="bg-ink-100 px-1">@basis-theory/web-agentic</code>. Both
-          variants work on the same allowances — verify one each way and compare the transcripts
-          in the inspector.
+          variants work on the same allowances — verify one each way and compare the Manual wire
+          timeline with the SDK lifecycle in the inspector.
         </p>
         <VariantToggle />
       </section>

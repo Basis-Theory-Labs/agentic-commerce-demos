@@ -4,12 +4,13 @@
 // rails, provider-error viewer, and (workbench) delete with cascade warning.
 
 import { useRef, useState } from "react";
-import type { PaymentMethod, Rail } from "@/lib/types";
+import type { PaymentMethod, ProviderErrorPage, Rail } from "@/lib/types";
 import { callAgentic } from "@/lib/agenticClient";
 import { useApiLog } from "@/lib/apiLog";
 import { useSession, type PaymentMethodEntry } from "@/lib/session";
 import { useToast } from "@/lib/toast";
 import { ScenarioChip } from "@/components/ScenarioChip";
+import { ProviderErrorList } from "@/components/ProviderErrorList";
 import { Button } from "@/components/ui/Button";
 import { CopyChip } from "@/components/ui/CopyChip";
 import { RailChips } from "@/components/ui/StatusPill";
@@ -28,7 +29,7 @@ export function PaymentMethodCard({
   const [retrying, setRetrying] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [errors, setErrors] = useState<Record<string, unknown>[] | null>(null);
+  const [errors, setErrors] = useState<ProviderErrorPage | null>(null);
   const [loadingErrors, setLoadingErrors] = useState(false);
   // A late retry response must not resurrect a payment method the user
   // deleted while the retry was in flight.
@@ -57,7 +58,7 @@ export function PaymentMethodCard({
           method: "POST",
           path: `/payment-methods/${pm.id}/rails/retry`,
           body: { rail: rail.rail, provider: rail.provider },
-          auth: "proxy",
+          auth: "public",
           tag: "rails/retry",
         },
         logger,
@@ -100,11 +101,11 @@ export function PaymentMethodCard({
   const loadErrors = async () => {
     setLoadingErrors(true);
     try {
-      const result = await callAgentic<{ data: Record<string, unknown>[] }>(
+      const result = await callAgentic<ProviderErrorPage>(
         { method: "GET", path: `/payment-methods/${pm.id}/errors`, auth: "proxy" },
         logger,
       );
-      setErrors(result.data ?? []);
+      setErrors({ ...result, data: result.data ?? [] });
     } catch (error) {
       toast.error(error);
     } finally {
@@ -171,18 +172,10 @@ export function PaymentMethodCard({
 
       {errors && (
         <div className="mt-2 border border-ink-200 bg-ink-50 p-2 text-xs">
-          {errors.length === 0 ? (
-            <p className="text-ink-500">No provider errors recorded for this payment method.</p>
-          ) : (
-            <ul className="space-y-1.5">
-              {errors.map((error, index) => (
-                <li key={index} className="font-mono text-[11px] text-ink-700">
-                  {String(error.code ?? "?")} ({String(error.provider ?? "")}) ·{" "}
-                  {String(error.detail ?? error.title ?? "")}
-                </li>
-              ))}
-            </ul>
-          )}
+          <ProviderErrorList
+            page={errors}
+            emptyLabel="No provider errors recorded for this payment method."
+          />
         </div>
       )}
     </div>

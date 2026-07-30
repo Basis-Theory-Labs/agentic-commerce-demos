@@ -31,6 +31,23 @@ const POPUP_CHECK_MS = 500;
 const HIDDEN_STYLE =
   "position:absolute;top:-9999px;left:-9999px;width:1px;height:1px;border:0;visibility:hidden;";
 
+/** Build the exact hosted Visa URL used by both iframe and popup. */
+export function buildVisaAuthUrl(
+  embed: VisaEmbed,
+  topOrigin = window.location.origin,
+): string {
+  if (!/^https?:\/\//i.test(embed.iframe_url)) {
+    throw new Error("The Visa iframe URL must be an http(s) URL.");
+  }
+  const params = new URLSearchParams({
+    apiKey: embed.api_key,
+    clientAppId: embed.client_app_id,
+    topOrigin,
+    integrator_origin: topOrigin,
+  });
+  return `${embed.iframe_url}?${params}`;
+}
+
 interface VisaMessage {
   type?: string;
   requestID?: string;
@@ -146,8 +163,11 @@ export class VisaCeremony {
    * registered with Visa).
    */
   init(embed: VisaEmbed): Promise<void> {
-    if (!/^https?:\/\//i.test(embed.iframe_url)) {
-      return Promise.reject(new Error("The Visa iframe URL must be an http(s) URL."));
+    let iframeUrl: string;
+    try {
+      iframeUrl = buildVisaAuthUrl(embed);
+    } catch (error) {
+      return Promise.reject(error);
     }
     this.config = embed;
     this.secureTokenValue = null;
@@ -162,14 +182,8 @@ export class VisaCeremony {
       window.addEventListener("message", this.boundOnMessage);
     }
 
-    const params = new URLSearchParams({
-      apiKey: embed.api_key,
-      clientAppId: embed.client_app_id,
-      topOrigin: window.location.origin,
-      integrator_origin: window.location.origin,
-    });
     const iframe = document.createElement("iframe");
-    iframe.src = `${embed.iframe_url}?${params}`;
+    iframe.src = iframeUrl;
     iframe.allow = "publickey-credentials-get; publickey-credentials-create";
     iframe.setAttribute(
       "sandbox",
@@ -264,7 +278,15 @@ export class VisaCeremony {
         );
       },
       onSessionCreated: (secureToken) => {
-        this.secureTokenValue = secureToken ?? null;
+        if (!secureToken) {
+          if (this.readyTimer) clearTimeout(this.readyTimer);
+          this.readyResolvers?.reject(
+            new Error("Visa created an auth session without a secure token. Try again."),
+          );
+          this.readyResolvers = null;
+          return;
+        }
+        this.secureTokenValue = secureToken;
         this.isReady = true;
         if (this.readyTimer) clearTimeout(this.readyTimer);
         this.readyResolvers?.resolve();

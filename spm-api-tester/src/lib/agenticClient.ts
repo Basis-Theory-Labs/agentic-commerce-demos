@@ -1,9 +1,10 @@
 // The browser-side API client. Two transports, one per key:
 //
 //   auth: "public" — direct fetch to the Agentic API with the PUBLIC key
-//                    (tokenize, create payment method, verify, allowance get)
+//                    (create/retry payment method, verify allowance)
 //   auth: "proxy"  — fetch to the Next.js route, which attaches the PRIVATE
-//                    key server-side (allowance management, credentials, errors)
+//                    key server-side (reads, allowance management, credentials,
+//                    errors)
 //
 // Framework-free so the RFC 7807 parsing, trace extraction, and key selection
 // are unit-testable; React surfaces pass a log callback from useApiLog.
@@ -47,22 +48,51 @@ export interface Logger {
   update: (id: string, patch: Partial<LogInput>) => void;
 }
 
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
 export function buildCurl(opts: {
   method: string;
   url: string;
   headers: Record<string, string>;
   body?: unknown;
 }): string {
-  const parts = [`curl -X ${opts.method} '${opts.url}'`];
+  const parts = [`curl -X ${opts.method} ${shellQuote(opts.url)}`];
   for (const [name, value] of Object.entries(opts.headers)) {
-    // Never emit a real key — the reader substitutes their own.
-    const safe = name.toLowerCase() === "bt-api-key" ? "$BT_API_KEY" : value;
-    parts.push(`  -H '${name}: ${safe}'`);
+    // Never emit a real key. Keep this one placeholder expandable so the
+    // copied command works after `BT_API_KEY=...` is set in the shell.
+    if (name.toLowerCase() === "bt-api-key") {
+      parts.push(`  -H "BT-API-KEY: $BT_API_KEY"`);
+    } else {
+      parts.push(`  -H ${shellQuote(`${name}: ${value}`)}`);
+    }
   }
   if (opts.body !== undefined) {
-    parts.push(`  -d '${JSON.stringify(opts.body, null, 2).replaceAll("'", "'\\''")}'`);
+    parts.push(`  -d ${shellQuote(JSON.stringify(opts.body, null, 2))}`);
   }
   return parts.join(" \\\n");
+}
+
+function redactCredentialLogResponse(method: string, path: string, body: unknown): unknown {
+  if (
+    method !== "POST" ||
+    !/^\/allowances\/[^/]+\/credentials\/?$/.test(path) ||
+    !body ||
+    typeof body !== "object"
+  ) {
+    return body;
+  }
+  const response = body as Record<string, unknown>;
+  const credential = response.credential;
+  if (!credential || typeof credential !== "object" || !("value" in credential)) return body;
+  return {
+    ...response,
+    credential: {
+      ...(credential as Record<string, unknown>),
+      value: "[redacted — revealed once in the UI]",
+    },
+  };
 }
 
 export function parseProblem(json: unknown, status: number): ApiProblem {
@@ -85,7 +115,7 @@ export async function callAgentic<T = unknown>(opts: AgenticCall, logger?: Logge
   const wireHeaders: Record<string, string> = {
     ...(opts.body !== undefined ? { "Content-Type": "application/json" } : {}),
     ...(direct ? { "BT-API-KEY": PUBLIC_KEY } : {}),
-    ...(opts.idempotencyKey ? { "Idempotency-Key": opts.idempotencyKey } : {}),
+    ...(opts.idempotencyKey ? { "BT-IDEMPOTENCY-KEY": opts.idempotencyKey } : {}),
   };
 
   // The inspector row describes the REAL upstream exchange. For proxied calls
@@ -141,11 +171,16 @@ export async function callAgentic<T = unknown>(opts: AgenticCall, logger?: Logge
 
   if (entryId) {
     const trace = decodeTrace(response.headers.get("X-BT-Trace"));
+    const loggedResponse = redactCredentialLogResponse(
+      opts.method,
+      opts.path,
+      trace?.response_body ?? json,
+    );
     logger?.update(entryId, {
       pending: false,
       status: trace?.status ?? response.status,
       ok: response.ok,
-      response: trace?.response_body ?? json,
+      response: loggedResponse,
       request: trace?.request_body ?? opts.body,
       url: trace?.url ?? url,
       duration_ms: trace?.duration_ms ?? duration,
@@ -157,7 +192,10 @@ export async function callAgentic<T = unknown>(opts: AgenticCall, logger?: Logge
             curl: buildCurl({
               method: opts.method,
               url: trace.url,
-              headers: wireHeaders,
+              headers: {
+                ...wireHeaders,
+                ...(direct ? {} : { "BT-API-KEY": "" }),
+              },
               body: opts.body,
             }),
           }

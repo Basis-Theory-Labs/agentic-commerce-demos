@@ -18,10 +18,11 @@ import {
   KNOWN_NEXT_ACTION_TYPES,
   type Allowance,
   type PasskeyContext,
+  type ProviderName,
   type VerifyResponse,
   type VisaEmbed,
 } from "@/lib/types";
-import { callAgentic } from "@/lib/agenticClient";
+import { AgenticApiError, callAgentic } from "@/lib/agenticClient";
 import { useApiLog } from "@/lib/apiLog";
 import { useToast } from "@/lib/toast";
 import { useSession, type AllowanceEntry } from "@/lib/session";
@@ -35,7 +36,12 @@ import {
   pollComplete,
   type MastercardCeremonyHandle,
 } from "@/lib/mastercardCeremony";
-import { createVerifier, SDK_INTEGRATION_SNIPPET } from "@/lib/sdkVerify";
+import {
+  createVerifier,
+  normalizeSdkError,
+  SDK_INTEGRATION_SNIPPET,
+  serializeSdkEvent,
+} from "@/lib/sdkVerify";
 import { SNIPPET_LOOP, SNIPPET_PASSKEY, SNIPPET_REDIRECT } from "@/lib/snippets";
 import { AGENTIC_API_URL, VISA_ENVIRONMENT, VISA_SANDBOX_EMBED } from "@/lib/env";
 import { NOT_SIMULATABLE } from "@/lib/scenarios";
@@ -46,6 +52,26 @@ import { Callout } from "@/components/ui/Callout";
 import { CodeBlock } from "@/components/ui/CodeBlock";
 import { OtpInput } from "@/components/ui/OtpInput";
 import { RailChips } from "@/components/ui/StatusPill";
+
+function isVerificationProvider(
+  provider: ProviderName | undefined,
+): provider is "vic" | "agentpay" {
+  return provider === "vic" || provider === "agentpay";
+}
+
+function withActiveVerificationRail(
+  allowance: Allowance,
+  provider: "vic" | "agentpay",
+): Allowance {
+  return {
+    ...allowance,
+    rails: allowance.rails?.map((rail) =>
+      rail.rail === "agentic-token" && rail.provider === provider
+        ? { ...rail, status: "active" }
+        : rail,
+    ),
+  };
+}
 
 export function VerifyPanel({
   entry,
@@ -63,11 +89,42 @@ export function VerifyPanel({
   if (!rail) {
     return (
       <Callout tone="warning">
-        This allowance has no agentic-token rail, so there is nothing to verify — spt credentials
-        can be minted right away.
+        This allowance has no agentic-token rail, so there is nothing to verify. Minting is
+        available only from an active rail that advertises a supported credential format.
       </Callout>
     );
   }
+  if (rail.status === "error") {
+    return (
+      <Callout tone="warning" title="Agentic-token rail setup failed">
+        This rail cannot be verified while it is in <code>error</code>
+        {rail.error?.code ? (
+          <>
+            {" "}
+            (<code>{rail.error.code}</code>)
+          </>
+        ) : null}
+        . Open the Workbench and retry the failed rail first.
+      </Callout>
+    );
+  }
+  if (!["pending_verification", "active"].includes(rail.status)) {
+    return (
+      <Callout tone="warning">
+        This agentic-token rail is <code>{rail.status}</code>, not ready for verification. Refresh
+        the allowance or resolve its setup state in the Workbench.
+      </Callout>
+    );
+  }
+  if (!isVerificationProvider(rail.provider)) {
+    return (
+      <Callout tone="warning" title="Unsupported verification provider">
+        The agentic-token rail did not advertise <code>vic</code> or <code>agentpay</code>.
+        Verification cannot safely infer a provider from the card brand.
+      </Callout>
+    );
+  }
+  const provider = rail.provider;
 
   return (
     <div className="space-y-3">
@@ -77,9 +134,19 @@ export function VerifyPanel({
       </div>
       <ScenarioChip scenarioPan={scenarioPan} stage="verify" />
       {variant === "manual" ? (
-        <ManualVerify key={allowance.id} allowance={allowance} onActive={onActive} />
+        <ManualVerify
+          key={allowance.id}
+          allowance={allowance}
+          provider={provider}
+          onActive={onActive}
+        />
       ) : (
-        <SdkVerify key={allowance.id} allowance={allowance} onActive={onActive} />
+        <SdkVerify
+          key={allowance.id}
+          allowance={allowance}
+          provider={provider}
+          onActive={onActive}
+        />
       )}
       <details className="border border-ink-200 bg-white px-3 py-2 text-xs text-ink-600">
         <summary className="cursor-pointer font-medium text-ink-900">
@@ -97,14 +164,21 @@ export function VerifyPanel({
 
 /* ── manual variant ───────────────────────────────────────────────────── */
 
-function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?: () => void }) {
+function ManualVerify({
+  allowance,
+  provider,
+  onActive,
+}: {
+  allowance: Allowance;
+  provider: "vic" | "agentpay";
+  onActive?: () => void;
+}) {
   const { config } = useAppConfig();
   const { dispatch } = useSession();
   const logger = useApiLog();
   const toast = useToast();
 
   const rail = allowance.rails?.find((r) => r.rail === "agentic-token");
-  const provider = rail?.provider ?? "vic";
   const isTest = config?.tenantType === "test";
   const displayName = config?.displayName || "Example Agent";
 
@@ -114,6 +188,7 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
   const [assurance, setAssurance] = useState<AssuranceData | null>(null);
   const [registerDone, setRegisterDone] = useState(false);
   const [mcCue, setMcCue] = useState<"message" | "closed" | null>(null);
+  const [mcOpen, setMcOpen] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [otpError, setOtpError] = useState<string | null>(null);
   // Monotonic per-failure nonce: identical error text on consecutive wrong
@@ -127,12 +202,24 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
 
   const ceremonyRef = useRef<VisaCeremony | null>(null);
   const mcHandleRef = useRef<MastercardCeremonyHandle | null>(null);
+  const visaInFlightRef = useRef(false);
+  const verifyInFlightRef = useRef(false);
+  const pollAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => {
       ceremonyRef.current?.dispose();
       mcHandleRef.current?.cancel();
+      mcHandleRef.current = null;
+      pollAbortRef.current?.abort();
     };
+  }, []);
+
+  const cancelMastercard = useCallback(() => {
+    const handle = mcHandleRef.current;
+    mcHandleRef.current = null;
+    handle?.cancel();
+    setMcOpen(false);
   }, []);
 
   const base = useMemo(() => ({ rail: "agentic-token", provider }), [provider]);
@@ -143,7 +230,7 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
   const refreshAllowance = useCallback(async () => {
     try {
       const fresh = await callAgentic<Allowance>(
-        { method: "GET", path: `/allowances/${allowance.id}`, auth: "public" },
+        { method: "GET", path: `/allowances/${allowance.id}`, auth: "proxy" },
         logger,
       );
       dispatch({ type: "upsertAllowance", entry: { resource: fresh } });
@@ -154,6 +241,9 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
 
   const applyResult = useCallback(
     async (result: VerifyResponse) => {
+      cancelMastercard();
+      pollAbortRef.current?.abort();
+      pollAbortRef.current = null;
       setVerifyState(result);
       setOtpError(null);
       setCeremonyError(null);
@@ -163,19 +253,27 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
       setMcCue(null);
       setOtpCode("");
       setMethodId(null);
+      setRegisterDone(false);
+      setPollNote(null);
       if (result.status === "active") {
+        dispatch({
+          type: "upsertAllowance",
+          entry: { resource: withActiveVerificationRail(allowance, provider) },
+        });
         toast.success("Rail active — verification complete");
         await refreshAllowance();
         onActive?.();
       }
     },
-    [refreshAllowance, toast, onActive],
+    [allowance, cancelMastercard, dispatch, provider, refreshAllowance, toast, onActive],
   );
 
   /** Direct (button-driven) verify send, serialized with everything else. */
   const sendVerify = useCallback(
     async (body: Record<string, unknown>, { silent = false } = {}) => {
-      if (busy) return null;
+      if (busy || verifyInFlightRef.current) return null;
+      verifyInFlightRef.current = true;
+      cancelMastercard();
       setBusy(true);
       try {
         const result = await callAgentic<VerifyResponse>(
@@ -188,36 +286,50 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
         if (!silent) toast.error(error);
         throw error;
       } finally {
+        verifyInFlightRef.current = false;
         setBusy(false);
       }
     },
-    [busy, base, verifyPath, logger, applyResult, toast],
+    [busy, base, verifyPath, logger, applyResult, toast, cancelMastercard],
   );
 
   /** `complete` result handling with the bounded pending poll. */
   const handleCompleteResult = useCallback(
     async (result: VerifyResponse) => {
       if (result.status === "verification_required" && !result.next_action) {
+        pollAbortRef.current?.abort();
+        const controller = new AbortController();
+        pollAbortRef.current = controller;
         setPollNote(
           "Still pending — polling complete every 2s (up to 10 tries). The mock never returns pending, but real Mastercard does.",
         );
         try {
-          // We already hold a pending `complete` response — wait one poll
-          // interval before the next attempt instead of firing immediately.
-          await new Promise((resolve) => setTimeout(resolve, 2000));
           const final = await pollComplete(
             () =>
               callAgentic<VerifyResponse>(
-                { method: "POST", path: verifyPath, body: { ...base, action: "complete" }, auth: "public", tag: "complete" },
+                {
+                  method: "POST",
+                  path: verifyPath,
+                  body: { ...base, action: "complete" },
+                  auth: "public",
+                  tag: "complete",
+                  signal: controller.signal,
+                },
                 logger,
               ),
-            { onPending: (attempt) => setPollNote(`Still pending after attempt ${attempt} — retrying…`) },
+            {
+              initialDelayMs: 2_000,
+              signal: controller.signal,
+              onPending: (attempt) =>
+                setPollNote(`Still pending after attempt ${attempt} — retrying…`),
+            },
           );
           await applyResult(final);
         } catch (error) {
-          toast.error(error);
+          if (!(error instanceof Error && error.name === "AbortError")) toast.error(error);
         } finally {
-          setPollNote(null);
+          if (pollAbortRef.current === controller) pollAbortRef.current = null;
+          if (!controller.signal.aborted) setPollNote(null);
         }
       } else {
         await applyResult(result);
@@ -259,14 +371,26 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
 
   /** MUST stay synchronous up to ceremony.authenticate() — popup activation. */
   const runVisaCeremony = (passkeyContext: PasskeyContext) => {
+    if (visaInFlightRef.current) return;
     const ceremony = ceremonyRef.current;
     if (!ceremony?.ready) {
       setCeremonyError("The Visa session is not initialized — reinitialize it below.");
       return;
     }
     setCeremonyError(null);
-    const promise = ceremony.authenticate(passkeyContext);
+    visaInFlightRef.current = true;
     setBusy(true);
+    let promise: ReturnType<VisaCeremony["authenticate"]>;
+    try {
+      // This call remains in the original click stack; the ref latch above is
+      // synchronous and prevents a second click from replacing its popup.
+      promise = ceremony.authenticate(passkeyContext);
+    } catch (error) {
+      visaInFlightRef.current = false;
+      setBusy(false);
+      setCeremonyError(error instanceof Error ? error.message : "Ceremony failed");
+      return;
+    }
     promise
       .then((result) => {
         if (passkeyContext.action === "REGISTER") {
@@ -278,11 +402,15 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
       .catch((error) => {
         setCeremonyError(error instanceof Error ? error.message : "Ceremony failed");
       })
-      .finally(() => setBusy(false));
+      .finally(() => {
+        visaInFlightRef.current = false;
+        setBusy(false);
+      });
   };
 
   /** MUST stay synchronous up to window.open — popup activation. */
   const openMastercard = (uri: string) => {
+    if (mcHandleRef.current) return;
     setCeremonyError(null);
     const handle = openMastercardCeremony(uri, bridgeOrigins(AGENTIC_API_URL));
     if (!handle) {
@@ -290,11 +418,22 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
       return;
     }
     mcHandleRef.current = handle;
+    setMcOpen(true);
     handle.settled.then((outcome) => {
+      if (mcHandleRef.current !== handle) return;
       mcHandleRef.current = null;
+      setMcOpen(false);
       setMcCue(outcome);
     });
   };
+
+  const onCompleteSendStateChange = useCallback(
+    (sending: boolean) => {
+      if (sending) cancelMastercard();
+      setBusy(sending);
+    },
+    [cancelMastercard],
+  );
 
   const nextAction = verifyState?.next_action;
 
@@ -304,7 +443,8 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
         <Callout tone="success" title="Rail active">
           The network confirmed the ceremony server-to-server. Credentials can now be minted on
           this rail. Verifying an already-active rail is harmless — <code>start</code> just
-          returns <code>{`{ status: 'active' }`}</code>.
+          returns{" "}
+          <code>{`{ status: 'active', rail: 'agentic-token', provider: '${provider}' }`}</code>.
         </Callout>
       </div>
     );
@@ -420,7 +560,9 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
                 Code sent via {nextAction.method.type} ({nextAction.method.value}) — expires in{" "}
                 {nextAction.code_expiration_minutes ?? 5} min,{" "}
                 {nextAction.max_attempts ?? 3} attempts (display hints; Visa enforces the real
-                limits).{isTest && " Mock behavior: any code works on test tenants."}
+                limits).
+                {isTest &&
+                  " Mock behavior: any code works unless you selected the invalid-OTP test card."}
               </Callout>
               <OtpInput
                 onComplete={setOtpCode}
@@ -428,24 +570,32 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
                 errorKey={otpFailures}
                 disabled={busy}
               />
-              <RequestPanel
-                method="POST"
-                path={verifyPath}
-                auth="public"
-                tag="submit_otp"
-                defaultBody={{ ...base, action: "submit_otp", otp_code: otpCode }}
-                sendLabel="Submit Code"
-                disabled={busy || otpCode.length === 0}
-                onSendStateChange={setBusy}
-                onSuccess={(result) => applyResult(result as VerifyResponse)}
-                onError={(error) => {
-                  if (error.problem.type?.includes("INVALID_OTP")) {
-                    setOtpError(error.problem.detail || "The code is invalid or expired — try again.");
-                    setOtpFailures((n) => n + 1);
-                    setOtpCode("");
-                  }
-                }}
-              />
+              {otpCode ? (
+                <RequestPanel
+                  method="POST"
+                  path={verifyPath}
+                  auth="public"
+                  tag="submit_otp"
+                  defaultBody={{ ...base, action: "submit_otp", otp_code: otpCode }}
+                  sendLabel="Submit Code"
+                  disabled={busy}
+                  onSendStateChange={setBusy}
+                  onSuccess={(result) => applyResult(result as VerifyResponse)}
+                  onError={(error) => {
+                    if (error.problem.type?.includes("INVALID_OTP")) {
+                      setOtpError(
+                        error.problem.detail || "The code is invalid or expired — try again.",
+                      );
+                      setOtpFailures((n) => n + 1);
+                      setOtpCode("");
+                    }
+                  }}
+                />
+              ) : (
+                <p className="text-[11px] text-ink-500">
+                  Enter the complete code to populate the strict-schema request body.
+                </p>
+              )}
             </div>
           )}
 
@@ -549,8 +699,11 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
               )}
               <CodeBlock title="Mastercard hosted redirect" code={SNIPPET_REDIRECT} />
               {!mcCue && (
-                <Button onClick={() => openMastercard(nextAction.uri as string)} disabled={busy}>
-                  Authenticate with Mastercard
+                <Button
+                  onClick={() => openMastercard(nextAction.uri as string)}
+                  disabled={busy || mcOpen}
+                >
+                  {mcOpen ? "Mastercard ceremony open…" : "Authenticate with Mastercard"}
                 </Button>
               )}
               {mcCue && (
@@ -568,7 +721,7 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
                 defaultBody={{ ...base, action: "complete" }}
                 sendLabel="Complete Verification"
                 disabled={busy}
-                onSendStateChange={setBusy}
+                onSendStateChange={onCompleteSendStateChange}
                 onSuccess={(result) => handleCompleteResult(result as VerifyResponse)}
               />
               {pollNote && <p className="text-xs text-warning">{pollNote}</p>}
@@ -604,7 +757,7 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
               tag="complete"
               defaultBody={{ ...base, action: "complete" }}
               sendLabel="Complete Verification"
-              disabled={busy}
+              disabled={busy || mcOpen}
               onSendStateChange={setBusy}
               onSuccess={(result) => handleCompleteResult(result as VerifyResponse)}
             />
@@ -625,7 +778,7 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
             <Button
               variant="ghost"
               small
-              disabled={busy}
+              disabled={busy || mcOpen}
               onClick={() => sendVerify({ action: "start", display_name: displayName, device_context: collectDeviceContext() }).catch(() => {})}
             >
               Restart verification
@@ -720,7 +873,15 @@ function StartRequestPanel({
 
 /* ── SDK variant ──────────────────────────────────────────────────────── */
 
-function SdkVerify({ allowance, onActive }: { allowance: Allowance; onActive?: () => void }) {
+function SdkVerify({
+  allowance,
+  provider,
+  onActive,
+}: {
+  allowance: Allowance;
+  provider: "vic" | "agentpay";
+  onActive?: () => void;
+}) {
   const { config } = useAppConfig();
   const { dispatch } = useSession();
   const logger = useApiLog();
@@ -730,6 +891,7 @@ function SdkVerify({ allowance, onActive }: { allowance: Allowance; onActive?: (
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const verifierRef = useRef<ReturnType<typeof createVerifier> | null>(null);
+  const runningRef = useRef(false);
 
   useEffect(() => {
     return () => verifierRef.current?.dispose();
@@ -739,6 +901,8 @@ function SdkVerify({ allowance, onActive }: { allowance: Allowance; onActive?: (
   const active = done || rail?.status === "active";
 
   const run = async () => {
+    if (runningRef.current) return;
+    runningRef.current = true;
     setError(null);
     setRunning(true);
     try {
@@ -749,20 +913,21 @@ function SdkVerify({ allowance, onActive }: { allowance: Allowance; onActive?: (
           logger.log({
             source: "sdk",
             label: `event: ${String(event.type ?? "unknown")}`,
-            // The `error` event carries an Error instance, which JSON.stringify
-            // would flatten to {} — surface its message instead.
-            response:
-              event.error instanceof Error ? { ...event, error: event.error.message } : event,
+            response: serializeSdkEvent(event),
             ok: event.type !== "error",
           }),
       });
       verifierRef.current = av;
-      await av.verifyAllowance(allowance.id);
+      await av.verifyAllowance(allowance.id, { provider });
+      dispatch({
+        type: "upsertAllowance",
+        entry: { resource: withActiveVerificationRail(allowance, provider) },
+      });
       setDone(true);
       toast.success("Rail active — verification complete (SDK)");
       try {
         const fresh = await callAgentic<Allowance>(
-          { method: "GET", path: `/allowances/${allowance.id}`, auth: "public" },
+          { method: "GET", path: `/allowances/${allowance.id}`, auth: "proxy" },
           logger,
         );
         dispatch({ type: "upsertAllowance", entry: { resource: fresh } });
@@ -771,8 +936,18 @@ function SdkVerify({ allowance, onActive }: { allowance: Allowance; onActive?: (
       }
       onActive?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Verification failed");
+      const normalized = normalizeSdkError(err);
+      setError(normalized.message || "Verification failed");
+      if (normalized.problem && normalized.status !== undefined) {
+        toast.error(
+          new AgenticApiError(normalized.problem, normalized.status, normalized.traceId),
+          "SDK verification failed",
+        );
+      } else {
+        toast.error(err, "SDK verification failed");
+      }
     } finally {
+      runningRef.current = false;
       setRunning(false);
     }
   };
@@ -783,8 +958,9 @@ function SdkVerify({ allowance, onActive }: { allowance: Allowance; onActive?: (
         This is the whole integration a customer ships: one factory call, one{" "}
         <code>verifyAllowance</code>. The SDK collects device context, drives the Visa
         iframe/popup or Mastercard redirect, renders its own OTP and interstitial UI, and resolves
-        when the rail is active. Its activity streams into the inspector with the{" "}
-        <span className="font-mono">sdk</span> pill.
+        when the rail is active. Its lifecycle events and sanitized typed failures stream into the
+        inspector with the <span className="font-mono">sdk</span> pill; its internal HTTP exchange
+        is intentionally owned by the SDK rather than reconstructed as a curl transcript.
       </p>
       <CodeBlock title="The entire SDK integration" language="js" code={SDK_INTEGRATION_SNIPPET} defaultOpen />
       {active ? (

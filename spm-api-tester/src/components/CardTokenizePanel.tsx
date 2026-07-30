@@ -37,7 +37,7 @@ const ELEMENT_STYLE = {
   base: {
     fontSize: "13px",
     color: "#0a0a0a",
-    fontFamily: "Inter, system-ui, sans-serif",
+    fontFamily: "system-ui, sans-serif",
     "::placeholder": { color: "#a1a1aa" },
   },
   invalid: { color: "#dc2626" },
@@ -50,9 +50,14 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
   const { log, update } = useApiLog();
   const toast = useToast();
 
-  const isProduction = config?.tenantType === "production";
-  const [tab, setTab] = useState<"mock" | "yours">(isProduction ? "yours" : "mock");
-  const [selected, setSelected] = useState<CardScenario>(CARD_SCENARIOS[0]);
+  // Only an explicit test-tenant declaration enables mock defaults. Missing
+  // config fails closed to production behavior.
+  const isTest = config?.tenantType === "test";
+  const isProduction = !isTest;
+  const [tab, setTab] = useState<"mock" | "yours">(isTest ? "mock" : "yours");
+  const [selected, setSelected] = useState<CardScenario | null>(
+    isTest ? CARD_SCENARIOS[0] : null,
+  );
   const [complete, setComplete] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,24 +65,28 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
   const cardRef = useRef<ICardElement | null>(null);
 
   const mockValue = useMemo(
-    () => ({
-      number: selected.pan,
-      expiration_month: MOCK_EXPIRATION.month,
-      expiration_year: MOCK_EXPIRATION.year,
-      cvc: MOCK_CVC,
-    }),
+    () =>
+      selected
+        ? {
+            number: selected.pan,
+            expiration_month: MOCK_EXPIRATION.month,
+            expiration_year: MOCK_EXPIRATION.year,
+            cvc: MOCK_CVC,
+          }
+        : null,
     [selected],
   );
 
   const registerToken = (tokenId: string, via: "elements" | "raw") => {
+    const scenario = tab === "mock" ? selected : null;
     dispatch({
       type: "addToken",
       token: {
         id: tokenId,
         via,
-        scenarioPan: tab === "mock" ? selected.pan : undefined,
-        brand: tab === "mock" ? selected.brand : undefined,
-        last4: tab === "mock" ? selected.pan.slice(-4) : undefined,
+        scenarioPan: scenario?.pan,
+        brand: scenario?.brand,
+        last4: scenario?.pan.slice(-4),
         createdAt: Date.now(),
       },
     });
@@ -113,6 +122,7 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
   };
 
   const tokenizeRaw = async () => {
+    if (!selected || !mockValue) throw new Error("Choose a mock scenario first");
     const body = { type: "card", data: mockValue };
     const url = `${VAULT_API_URL}/tokens`;
     const started = Date.now();
@@ -146,6 +156,10 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
 
   const submit = async () => {
     setError(null);
+    if (tab === "mock" && (!selected || !mockValue)) {
+      setError("Choose a mock scenario before tokenizing.");
+      return;
+    }
     setLoading(true);
     setUsedRawFallback(false);
     try {
@@ -170,7 +184,7 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
     }
   };
 
-  const canSubmit = !!bt && (tab === "mock" || complete) && !loading;
+  const canSubmit = !!bt && (tab === "mock" ? !!selected : complete) && !loading;
 
   return (
     <div className="border border-ink-200 bg-white">
@@ -216,9 +230,9 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
                 <button
                   key={scenario.pan}
                   onClick={() => setSelected(scenario)}
-                  aria-pressed={selected.pan === scenario.pan}
+                  aria-pressed={selected?.pan === scenario.pan}
                   className={`border p-2.5 text-left text-xs ${
-                    selected.pan === scenario.pan
+                    selected?.pan === scenario.pan
                       ? "border-ink-900 bg-ink-50"
                       : "border-ink-200 bg-white hover:border-ink-400"
                   }`}
@@ -255,7 +269,7 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
             Card
           </label>
           <div className="border border-ink-300 bg-white px-2.5 py-1.5">
-            {tab === "mock" ? (
+            {tab === "mock" && selected && mockValue ? (
               // Remount per selection so the v2 static `value` option applies
               // at element creation — the most reliable prefill path.
               <CardElement
@@ -267,7 +281,7 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
                 readOnly
                 style={ELEMENT_STYLE}
               />
-            ) : (
+            ) : tab === "yours" ? (
               <CardElement
                 id="card-element"
                 bt={bt}
@@ -275,6 +289,10 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
                 onChange={(e) => setComplete(!!e?.complete)}
                 style={ELEMENT_STYLE}
               />
+            ) : (
+              <p className="py-1 text-xs text-ink-500">
+                Choose a scenario above to load its test card.
+              </p>
             )}
           </div>
         </div>

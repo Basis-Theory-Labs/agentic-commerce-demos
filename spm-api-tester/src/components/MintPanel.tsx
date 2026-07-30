@@ -6,7 +6,7 @@
 // credential reveal card — values are returned exactly once.
 
 import { useCallback, useMemo, useState } from "react";
-import type { Allowance, Credential } from "@/lib/types";
+import type { Allowance, Credential, CredentialFormat, Rail } from "@/lib/types";
 import { callAgentic } from "@/lib/agenticClient";
 import { useApiLog } from "@/lib/apiLog";
 import { useSession, type AllowanceEntry } from "@/lib/session";
@@ -28,7 +28,11 @@ interface MintDef {
   body: unknown;
 }
 
-function mintsFor(allowance: Allowance, challengeExpires: string): MintDef[] {
+function supports(rail: Rail | undefined, format: CredentialFormat): boolean {
+  return rail?.credential_formats?.includes(format) ?? false;
+}
+
+export function mintsFor(allowance: Allowance, challengeExpires: string): MintDef[] {
   const currency = allowance.amount?.currency ?? "USD";
   const agentic = allowance.rails?.find((r) => r.rail === "agentic-token");
   const spt = allowance.rails?.find((r) => r.rail === "spt");
@@ -37,8 +41,8 @@ function mintsFor(allowance: Allowance, challengeExpires: string): MintDef[] {
   if (agentic?.provider && agentic.status === "active") {
     const provider = agentic.provider;
     const network = provider === "vic" ? "visa" : "mastercard";
-    mints.push(
-      {
+    const definitions: Array<[CredentialFormat, MintDef]> = [
+      ["card", {
         key: "agentic-card",
         title: "Agentic Token — Card",
         blurb: "A single-use virtual card (PAN, expiry, CVC) for typing into any checkout.",
@@ -48,8 +52,8 @@ function mintsFor(allowance: Allowance, challengeExpires: string): MintDef[] {
           amount: { value: "5.00", currency },
           credential: { format: "card" },
         },
-      },
-      {
+      }],
+      ["network-token", {
         key: "agentic-network-token",
         title:
           provider === "vic"
@@ -63,8 +67,8 @@ function mintsFor(allowance: Allowance, challengeExpires: string): MintDef[] {
           amount: { value: "5.00", currency },
           credential: { format: "network-token" },
         },
-      },
-      {
+      }],
+      ["mpp", {
         key: "agentic-mpp",
         title: `${provider === "vic" ? "Visa" : "Mastercard"} MPP Card Credential`,
         blurb:
@@ -105,13 +109,18 @@ function mintsFor(allowance: Allowance, challengeExpires: string): MintDef[] {
             },
           },
         },
-      },
+      }],
+    ];
+    mints.push(
+      ...definitions
+        .filter(([format]) => supports(agentic, format))
+        .map(([, definition]) => definition),
     );
   }
 
-  if (spt?.status === "enabled" || spt?.status === "active") {
-    mints.push(
-      {
+  if (spt?.status === "active") {
+    const definitions: Array<[CredentialFormat, MintDef]> = [
+      ["identifier", {
         key: "spt-identifier",
         title: "Stripe SPT (Raw Identifier)",
         blurb:
@@ -125,8 +134,8 @@ function mintsFor(allowance: Allowance, challengeExpires: string): MintDef[] {
             payload: { network_business_profile: "np_example" },
           },
         },
-      },
-      {
+      }],
+      ["mpp", {
         key: "spt-mpp",
         title: "Stripe MPP Authorization Credential",
         blurb:
@@ -157,21 +166,26 @@ function mintsFor(allowance: Allowance, challengeExpires: string): MintDef[] {
             },
           },
         },
-      },
+      }],
+    ];
+    mints.push(
+      ...definitions
+        .filter(([format]) => supports(spt, format))
+        .map(([, definition]) => definition),
     );
   }
 
   return mints;
 }
 
-function errorDemosFor(allowance: Allowance, challengeExpires: string): MintDef[] {
+export function errorDemosFor(allowance: Allowance, challengeExpires: string): MintDef[] {
   const currency = allowance.amount?.currency ?? "USD";
   const agentic = allowance.rails?.find((r) => r.rail === "agentic-token");
   const spt = allowance.rails?.find((r) => r.rail === "spt");
   const railForAmountDemos =
-    spt?.status === "enabled" || spt?.status === "active"
+    spt?.status === "active" && supports(spt, "identifier")
       ? { rail: "spt", provider: "stripe", format: { format: "identifier", payload: { network_business_profile: "np_example" } } }
-      : agentic?.status === "active" && agentic.provider
+      : agentic?.status === "active" && agentic.provider && supports(agentic, "card")
         ? { rail: "agentic-token", provider: agentic.provider, format: { format: "card" } }
         : null;
 
@@ -205,7 +219,7 @@ function errorDemosFor(allowance: Allowance, challengeExpires: string): MintDef[
     );
   }
 
-  if (agentic?.provider && agentic.status === "active") {
+  if (agentic?.provider && agentic.status === "active" && supports(agentic, "mpp")) {
     const provider = agentic.provider;
     const wrongNetwork = provider === "vic" ? "mastercard" : "visa";
     const cardChallenge = (methodDetails: Record<string, unknown>) => ({
@@ -283,7 +297,7 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
   const refreshAllowance = useCallback(async () => {
     try {
       const fresh = await callAgentic<Allowance>(
-        { method: "GET", path: `/allowances/${allowance.id}`, auth: "public" },
+        { method: "GET", path: `/allowances/${allowance.id}`, auth: "proxy" },
         logger,
       );
       dispatch({ type: "upsertAllowance", entry: { resource: fresh } });
@@ -359,6 +373,12 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
                 id: (result as Credential).id,
               })}
               onSuccess={onMinted}
+              onError={() => {
+                // Unknown provider outcomes commit spend even though the
+                // request throws. Refresh on every mint error; conclusive
+                // failures simply confirm the unchanged/released balance.
+                void refreshAllowance();
+              }}
             />
           </div>
         </details>
@@ -385,12 +405,23 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
                   defaultBody={demo.body}
                   idempotency
                   sendLabel="Send (expected to fail)"
+                  onError={() => {
+                    void refreshAllowance();
+                  }}
                 />
               </div>
             ))}
           </div>
         </details>
       )}
+
+      <Callout tone="warning" title="Unknown mint outcomes are terminal">
+        <code>CREDENTIAL_OUTCOME_UNKNOWN</code> commits the attempted amount to{" "}
+        <code>amount_spent</code>. Reusing that idempotency key only replays the same terminal
+        error; it cannot recover or re-mint. There is no credential reconcile or release endpoint,
+        and the spendable payload cannot be recovered. A new key starts a distinct mint attempt
+        and may spend again.
+      </Callout>
 
       <div className="flex items-center gap-2">
         <Button
