@@ -41,6 +41,13 @@ export async function proxyAgentic(request: NextRequest, path: string[]) {
     );
   }
 
+  if (path.some((segment) => !/^[A-Za-z0-9._~-]+$/.test(segment) || /^\.+$/.test(segment))) {
+    return NextResponse.json(
+      { type: "VALIDATION_ERROR", title: "Invalid path segment", status: 400 },
+      { status: 400 },
+    );
+  }
+
   const url = `${AGENTIC_BASE.replace(/\/+$/, "")}/${path.join("/")}${request.nextUrl.search}`;
   const rawBody =
     request.method === "GET" || request.method === "HEAD" ? undefined : await request.text();
