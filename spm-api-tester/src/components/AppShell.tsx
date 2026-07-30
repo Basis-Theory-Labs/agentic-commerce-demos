@@ -9,6 +9,54 @@ import { AGENTIC_API_URL } from "@/lib/env";
 import { SetupScreen, useSetupState } from "@/components/SetupScreen";
 import Inspector from "@/components/Inspector";
 
+export function EnvironmentContext({
+  displayName,
+  apiUrl,
+  tenantType,
+}: {
+  displayName: string;
+  apiUrl: string;
+  tenantType: "test" | "production";
+}) {
+  const isProduction = tenantType === "production";
+
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <div className="hidden min-w-0 overflow-hidden rounded-lg border border-ink-200 bg-surface xl:flex">
+        <div className="min-w-0 px-3 py-2">
+          <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-ink-500">
+            Agent
+          </div>
+          <div className="max-w-48 truncate text-xs font-medium text-ink-900">{displayName}</div>
+        </div>
+        <div className="min-w-0 border-l border-ink-200 px-3 py-2">
+          <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-ink-500">
+            API endpoint
+          </div>
+          <div className="max-w-64 truncate font-mono text-xs text-ink-700">{apiUrl}</div>
+        </div>
+      </div>
+      <span
+        aria-label={`Environment: ${isProduction ? "Production tenant" : "Test tenant"}`}
+        className={`inline-flex shrink-0 items-center gap-2 rounded-lg border px-2.5 py-2 text-xs font-medium ${
+          isProduction
+            ? "border-warning-border bg-warning-soft text-warning"
+            : "border-ink-200 bg-surface text-ink-700"
+        }`}
+      >
+        <span
+          aria-hidden
+          className={`h-1.5 w-1.5 rounded-full ${isProduction ? "bg-warning" : "bg-ink-500"}`}
+        />
+        <span className="hidden lg:inline">
+          {isProduction ? "Production tenant" : "Test tenant"}
+        </span>
+        <span className="lg:hidden">{isProduction ? "Prod" : "Test"}</span>
+      </span>
+    </div>
+  );
+}
+
 // Common chrome: customer-portal visual language, mode navigation, environment
 // context, reset-session, and a persistent desktop inspector. Renders the
 // setup screen when keys are missing so every route stays safe on a fresh
@@ -34,7 +82,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navClass = (href: string) =>
     `rounded-md px-4 py-2 text-sm font-medium transition-colors ${
       pathname.startsWith(href)
-        ? "bg-accent-soft text-accent"
+        ? "bg-ink-950 text-screen"
         : "text-ink-600 hover:bg-ink-50 hover:text-ink-900"
     }`;
 
@@ -45,7 +93,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/" className="group flex shrink-0 items-center gap-3">
             <span
               aria-hidden
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent font-mono text-sm font-semibold text-accent-foreground transition-transform group-hover:scale-[1.03]"
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink-950 font-mono text-sm font-semibold text-screen transition-transform group-hover:scale-[1.03]"
             >
               bt/
             </span>
@@ -68,23 +116,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           </nav>
           <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
-            <div className="hidden min-w-0 flex-col items-end xl:flex">
-              <span className="max-w-72 truncate text-xs font-medium text-ink-700">
-                {config?.displayName}
-              </span>
-              <span className="max-w-72 truncate font-mono text-xs text-ink-500">
-                {AGENTIC_API_URL}
-              </span>
-            </div>
-            <span
-              className={`rounded-md border px-2.5 py-1 text-xs font-medium uppercase tracking-wide ${
-                config?.tenantType === "production"
-                  ? "border-warning-border bg-warning-soft text-warning"
-                  : "border-accent/30 bg-accent-soft text-accent"
-              }`}
-            >
-              {config?.tenantType}
-            </span>
+            <EnvironmentContext
+              displayName={config?.displayName || "Example Agent"}
+              apiUrl={AGENTIC_API_URL}
+              tenantType={config?.tenantType || "production"}
+            />
             <button
               type="button"
               onClick={() => {
@@ -92,10 +128,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 toast.info("Session reset", "All session resources were forgotten locally.");
               }}
               aria-label="Reset session"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink-300 bg-surface text-ink-600 transition-colors hover:border-accent/50 hover:text-ink-900 sm:h-auto sm:w-auto sm:px-3 sm:py-2 sm:text-xs sm:font-medium"
+              className="flex h-9 w-9 items-center justify-center gap-2 rounded-lg border border-ink-300 bg-surface text-ink-600 transition-colors hover:border-ink-400 hover:bg-ink-50 hover:text-ink-900 sm:h-auto sm:w-auto sm:px-3 sm:py-2 sm:text-xs sm:font-medium"
             >
               <svg
-                className="h-4 w-4 sm:hidden"
+                className="h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -108,7 +144,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   d="M4.5 9a7.5 7.5 0 111.88 7.25M4.5 9V4.5M4.5 9H9"
                 />
               </svg>
-              <span className="hidden sm:inline">Reset session</span>
+              <span className="hidden md:inline">Reset session</span>
             </button>
           </div>
         </div>
