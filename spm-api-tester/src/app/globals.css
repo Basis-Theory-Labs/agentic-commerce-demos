@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+:root {
+  --mono-0: #ffffff;
+  --mono-50: #fafafa;
+  --mono-100: #f4f4f5;
+  --mono-200: #e4e4e7;
+  --mono-300: #d4d4d8;
+  --mono-400: #a1a1aa;
+  --mono-500: #71717a;
+  --mono-600: #52525b;
+  --mono-700: #3f3f46;
+  --mono-800: #27272a;
+  --mono-900: #18181b;
+  --mono-950: #0a0a0a;
+
+  --accent: var(--mono-950);
+  --accent-hover: var(--mono-800);
+
+  /* Semantic status tones + soft background variants. Every status surface
+     in the app derives from these — no scattered hex values. */
+  --success: #15803d;
+  --success-soft: #f0fdf4;
+  --success-border: #bbf7d0;
+  --warning: #a16207;
+  --warning-soft: #fefce8;
+  --warning-border: #fde68a;
+  --error: #dc2626;
+  --error-soft: #fef2f2;
+  --error-border: #fecaca;
+}
+
+@theme inline {
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
+
+  --color-ink-950: var(--mono-950);
+  --color-ink-900: var(--mono-900);
+  --color-ink-800: var(--mono-800);
+  --color-ink-700: var(--mono-700);
+  --color-ink-600: var(--mono-600);
+  --color-ink-500: var(--mono-500);
+  --color-ink-400: var(--mono-400);
+  --color-ink-300: var(--mono-300);
+  --color-ink-200: var(--mono-200);
+  --color-ink-100: var(--mono-100);
+  --color-ink-50: var(--mono-50);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-border: var(--success-border);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-border: var(--warning-border);
+  --color-error: var(--error);
+  --color-error-soft: var(--error-soft);
+  --color-error-border: var(--error-border);
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-outfit);
+  --font-mono: var(--font-source-code-pro);
+}
+
+html,
+body {
+  background: var(--mono-50);
+  color: var(--mono-700);
+  min-height: 100%;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .font-display {
+    font-family: var(--font-outfit), var(--font-inter), ui-sans-serif,
+      system-ui, sans-serif;
+    color: var(--mono-950);
+    letter-spacing: -0.01em;
+  }
+
+  code,
+  pre,
+  .font-mono {
+    font-family: var(--font-source-code-pro), ui-monospace, SFMono-Regular,
+      Menlo, Consolas, monospace;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--mono-950);
+    outline-offset: 1px;
+  }
+}
+
+.bg-dots {
+  background-image: radial-gradient(
+    circle,
+    rgba(24, 24, 27, 0.06) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
