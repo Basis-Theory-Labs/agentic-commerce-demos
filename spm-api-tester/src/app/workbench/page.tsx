@@ -452,7 +452,11 @@ function VerificationSection() {
 
 function CredentialsSection() {
   const { state } = useSession();
+  const logger = useApiLog();
+  const toast = useToast();
   const [alwId, setAlwId] = useState("");
+  const [credId, setCredId] = useState("");
+  const [fetchedMeta, setFetchedMeta] = useState<Record<string, unknown> | null>(null);
   const effectiveId = alwId || state.allowances[0]?.resource.id || "";
   const entry = state.allowances.find((a) => a.resource.id === effectiveId);
 
@@ -469,6 +473,51 @@ function CredentialsSection() {
             entry={entry}
             scenarioPan={scenarioForAllowance(state, effectiveId)}
           />
+          <div>
+            <label className="mb-1 block text-[11px] tracking-wide text-ink-500 uppercase">
+              Look up a credential id on this allowance (metadata only)
+            </label>
+            <div className="flex gap-1.5">
+              <input
+                value={credId}
+                onChange={(e) => setCredId(e.target.value)}
+                placeholder="cred_…"
+                spellCheck={false}
+                className="min-w-0 flex-1 border border-ink-300 bg-white px-2 py-1.5 font-mono text-xs text-ink-900 focus:border-ink-900 focus:outline-none"
+              />
+              <Button
+                variant="ghost"
+                small
+                onClick={async () => {
+                  const id = credId.trim();
+                  if (!id.startsWith("cred_")) {
+                    toast.error(new Error("That doesn't look like a credential id (cred_…)."));
+                    return;
+                  }
+                  try {
+                    const meta = await callAgentic<Record<string, unknown>>(
+                      {
+                        method: "GET",
+                        path: `/allowances/${effectiveId}/credentials/${id}`,
+                        auth: "proxy",
+                      },
+                      logger,
+                    );
+                    setFetchedMeta(meta);
+                  } catch (error) {
+                    toast.error(error);
+                  }
+                }}
+              >
+                GET
+              </Button>
+            </div>
+            {fetchedMeta && (
+              <pre className="mt-2 max-h-48 overflow-auto border border-ink-200 bg-ink-50 p-2 font-mono text-[11px]">
+                {JSON.stringify(fetchedMeta, null, 2)}
+              </pre>
+            )}
+          </div>
         </>
       ) : (
         <Callout>No allowances in this session yet — create or import one above.</Callout>
