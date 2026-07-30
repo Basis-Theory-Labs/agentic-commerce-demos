@@ -146,6 +146,9 @@ export class VisaCeremony {
    * registered with Visa).
    */
   init(embed: VisaEmbed): Promise<void> {
+    if (!/^https?:\/\//i.test(embed.iframe_url)) {
+      return Promise.reject(new Error("The Visa iframe URL must be an http(s) URL."));
+    }
     this.config = embed;
     this.secureTokenValue = null;
     this.isReady = false;

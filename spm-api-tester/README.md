@@ -88,6 +88,12 @@ NEXT_PUBLIC_BT_AGENTIC_API_URL=http://localhost:3001/api
   (`cloudflared` must be installed). Real Visa passkey ceremonies require an
   HTTPS top-level origin **registered with Visa**; mock ceremonies work on
   plain localhost.
+
+  > ⚠️ **The tunnel exposes the private-key proxy.** `/api/agentic/*` has no
+  > authentication of its own — anyone who learns the tunnel URL can mint
+  > credentials and manage allowances with your private key while the tunnel
+  > is up. Use a test tenant, keep the URL to yourself, and stop the tunnel
+  > when you're done. This app is a developer tool, not something to deploy.
 - `npm run check` — build + lint + tests.
 
 ## Modes & flow variants

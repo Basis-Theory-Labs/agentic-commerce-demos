@@ -27,6 +27,25 @@ function encodeTrace(trace: ServerTrace): string {
   return Buffer.from(JSON.stringify(trace), "utf-8").toString("base64");
 }
 
+/**
+ * Credential mint responses carry the one-time spendable value. The reveal
+ * card is the ONLY surface that shows it — the inspector trace gets metadata
+ * with the value redacted, so DevTools/HAR captures never carry a live PAN
+ * or cryptogram a second way.
+ */
+function redactCredentialValue(body: unknown): unknown {
+  if (!body || typeof body !== "object") return body;
+  const obj = body as Record<string, unknown>;
+  const credential = obj.credential as Record<string, unknown> | undefined;
+  if (credential && typeof credential === "object" && "value" in credential) {
+    return {
+      ...obj,
+      credential: { ...credential, value: "[redacted — revealed once in the UI]" },
+    };
+  }
+  return body;
+}
+
 export async function proxyAgentic(request: NextRequest, path: string[]) {
   const apiKey = process.env.BT_API_KEY;
   if (!apiKey) {
@@ -88,7 +107,7 @@ export async function proxyAgentic(request: NextRequest, path: string[]) {
       url,
       request_body: requestJson,
       status: upstream.status,
-      response_body: responseJson,
+      response_body: redactCredentialValue(responseJson),
       duration_ms: duration,
     }),
   };

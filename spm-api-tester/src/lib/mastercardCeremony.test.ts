@@ -3,6 +3,7 @@ import {
   BRIDGE_MESSAGE_TYPE,
   bridgeOrigins,
   isBridgeMessage,
+  isSafeCeremonyUrl,
   pollComplete,
 } from "./mastercardCeremony";
 import type { VerifyResponse } from "./types";
@@ -16,6 +17,16 @@ describe("bridgeOrigins", () => {
 
   it("adds the origin of a custom (local) agentic API URL", () => {
     expect(bridgeOrigins("http://localhost:3001/api")).toContain("http://localhost:3001");
+  });
+});
+
+describe("isSafeCeremonyUrl", () => {
+  it("accepts http(s) and rejects script-ish schemes", () => {
+    expect(isSafeCeremonyUrl("https://api.test.basistheory.com/mock/mastercard/allowance-auth")).toBe(true);
+    expect(isSafeCeremonyUrl("http://localhost:3001/api/mock/mastercard/allowance-auth")).toBe(true);
+    expect(isSafeCeremonyUrl("javascript:alert(1)")).toBe(false);
+    expect(isSafeCeremonyUrl("data:text/html,<script>1</script>")).toBe(false);
+    expect(isSafeCeremonyUrl("//evil.example/path")).toBe(false);
   });
 });
 

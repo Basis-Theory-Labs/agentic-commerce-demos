@@ -15,6 +15,15 @@ import type { VerifyResponse } from "@/lib/types";
 
 export const BRIDGE_MESSAGE_TYPE = "mastercard_verification_complete";
 
+/**
+ * Ceremony surfaces only ever open web URLs. The API is trusted, but
+ * rejecting javascript:/data: schemes here is cheap insurance against a
+ * compromised or misconfigured upstream.
+ */
+export function isSafeCeremonyUrl(uri: string): boolean {
+  return /^https?:\/\//i.test(uri);
+}
+
 export const DEFAULT_POLL_ATTEMPTS = 10;
 export const DEFAULT_POLL_DELAY_MS = 2000;
 
@@ -99,6 +108,7 @@ export function openMastercardCeremony(
   uri: string,
   allowedOrigins: string[],
 ): MastercardCeremonyHandle | null {
+  if (!isSafeCeremonyUrl(uri)) return null;
   const popup = window.open(uri, "mc-auth", "width=480,height=720");
   if (!popup) return null;
 

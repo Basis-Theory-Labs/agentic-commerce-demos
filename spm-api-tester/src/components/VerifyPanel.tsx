@@ -727,7 +727,10 @@ function SdkVerify({ allowance, onActive }: { allowance: Allowance; onActive?: (
           logger.log({
             source: "sdk",
             label: `event: ${String(event.type ?? "unknown")}`,
-            response: event,
+            // The `error` event carries an Error instance, which JSON.stringify
+            // would flatten to {} — surface its message instead.
+            response:
+              event.error instanceof Error ? { ...event, error: event.error.message } : event,
             ok: event.type !== "error",
           }),
       });
