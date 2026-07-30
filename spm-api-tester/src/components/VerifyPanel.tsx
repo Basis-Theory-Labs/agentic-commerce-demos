@@ -290,13 +290,6 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
     });
   };
 
-  const startBody = {
-    ...base,
-    action: "start",
-    display_name: displayName,
-    device_context: collectDeviceContext(),
-  };
-
   const nextAction = verifyState?.next_action;
 
   if (active) {
@@ -321,15 +314,14 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
             the network server-to-server — nothing the browser sends can activate the rail by
             itself.
           </p>
-          <RequestPanel
-            method="POST"
-            path={verifyPath}
-            auth="public"
-            tag="start"
-            defaultBody={startBody}
+          <StartRequestPanel
+            verifyPath={verifyPath}
+            base={base}
+            displayName={displayName}
             sendLabel="Start Verification"
             disabled={busy}
-            onSuccess={(result) => applyResult(result as VerifyResponse)}
+            onSendStateChange={setBusy}
+            onSuccess={(result) => applyResult(result)}
           />
           <CodeBlock title="The verification loop" code={SNIPPET_LOOP} />
         </>
@@ -367,6 +359,7 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
                   defaultBody={{ ...base, action: "submit_session", session_context: { secure_token: secureToken } }}
                   sendLabel="Submit Session"
                   disabled={busy}
+                  onSendStateChange={setBusy}
                   onSuccess={(result) => applyResult(result as VerifyResponse)}
                 />
               )}
@@ -409,6 +402,7 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
                 defaultBody={{ ...base, action: "select_otp_method", method_id: methodId ?? nextAction.methods[0]?.id ?? "" }}
                 sendLabel="Send Code"
                 disabled={busy}
+                onSendStateChange={setBusy}
                 onSuccess={(result) => applyResult(result as VerifyResponse)}
               />
             </div>
@@ -431,6 +425,7 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
                 defaultBody={{ ...base, action: "submit_otp", otp_code: otpCode }}
                 sendLabel="Submit Code"
                 disabled={busy}
+                onSendStateChange={setBusy}
                 onSuccess={(result) => applyResult(result as VerifyResponse)}
                 onError={(error) => {
                   if (error.problem.type?.includes("INVALID_OTP")) {
@@ -504,17 +499,16 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
                     <code>device_context</code>): the device is now bound, so verification jumps
                     straight to an AUTHENTICATE ceremony — no OTP this time.
                   </Callout>
-                  <RequestPanel
-                    method="POST"
-                    path={verifyPath}
-                    auth="public"
-                    tag="start"
-                    defaultBody={{ ...base, action: "start", display_name: displayName, device_context: collectDeviceContext() }}
+                  <StartRequestPanel
+                    verifyPath={verifyPath}
+                    base={base}
+                    displayName={displayName}
                     sendLabel="Restart Verification (start)"
                     disabled={busy}
+                    onSendStateChange={setBusy}
                     onSuccess={(result) => {
                       setRegisterDone(false);
-                      return applyResult(result as VerifyResponse);
+                      return applyResult(result);
                     }}
                   />
                 </>
@@ -560,6 +554,7 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
                 defaultBody={{ ...base, action: "complete" }}
                 sendLabel="Complete Verification"
                 disabled={busy}
+                onSendStateChange={setBusy}
                 onSuccess={(result) => handleCompleteResult(result as VerifyResponse)}
               />
               {pollNote && <p className="text-xs text-warning">{pollNote}</p>}
@@ -630,6 +625,50 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * The `start` request panel. The body (with a freshly collected
+ * device_context) is lazy-initialized once per mount, so each start surface
+ * gets a fresh client_reference_id without churning the editable body on
+ * every render.
+ */
+function StartRequestPanel({
+  verifyPath,
+  base,
+  displayName,
+  sendLabel,
+  disabled,
+  onSendStateChange,
+  onSuccess,
+}: {
+  verifyPath: string;
+  base: { rail: string; provider: string };
+  displayName: string;
+  sendLabel: string;
+  disabled: boolean;
+  onSendStateChange: (sending: boolean) => void;
+  onSuccess: (result: VerifyResponse) => void | Promise<void>;
+}) {
+  const [body] = useState(() => ({
+    ...base,
+    action: "start",
+    display_name: displayName,
+    device_context: collectDeviceContext(),
+  }));
+  return (
+    <RequestPanel
+      method="POST"
+      path={verifyPath}
+      auth="public"
+      tag="start"
+      defaultBody={body}
+      sendLabel={sendLabel}
+      disabled={disabled}
+      onSendStateChange={onSendStateChange}
+      onSuccess={(result) => onSuccess(result as VerifyResponse)}
+    />
   );
 }
 

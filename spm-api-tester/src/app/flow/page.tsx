@@ -123,6 +123,7 @@ function Flow() {
           <PaymentMethodStep
             tokenId={tokenId}
             pmId={pmId}
+            onTokenImported={(id) => setParams({ tok: id })}
             onCreated={(pm) => setParams({ pm: pm.id })}
             onContinue={() => setParams({ step: "allowance" })}
           />
@@ -138,6 +139,7 @@ function Flow() {
           <AllowanceStep
             pmId={pmId}
             alwId={alwId}
+            onPmImported={(id) => setParams({ pm: id })}
             onCreated={(alw) => setParams({ alw: alw.id })}
             onContinue={(needsVerify) =>
               setParams({ step: needsVerify ? "verify" : "credentials" })
@@ -247,11 +249,13 @@ function MissingResource({
 function PaymentMethodStep({
   tokenId,
   pmId,
+  onTokenImported,
   onCreated,
   onContinue,
 }: {
   tokenId: string | null;
   pmId: string | null;
+  onTokenImported: (id: string) => void;
   onCreated: (pm: PaymentMethod) => void;
   onContinue: () => void;
 }) {
@@ -263,9 +267,9 @@ function PaymentMethodStep({
   if (!tokenEntry && !pmEntry) {
     return (
       <MissingResource
-        label="No card token in this session — tokenize one in the Card step, or paste a token id:"
+        label="No card token selected — tokenize one in the Card step, or paste a token id:"
         kind="token"
-        onImported={() => undefined}
+        onImported={onTokenImported}
       />
     );
   }
@@ -339,11 +343,13 @@ function PaymentMethodStep({
 function AllowanceStep({
   pmId,
   alwId,
+  onPmImported,
   onCreated,
   onContinue,
 }: {
   pmId: string | null;
   alwId: string | null;
+  onPmImported: (id: string) => void;
   onCreated: (alw: Allowance) => void;
   onContinue: (needsVerify: boolean) => void;
 }) {
@@ -356,9 +362,9 @@ function AllowanceStep({
   if (!pmEntry && !alwEntry) {
     return (
       <MissingResource
-        label="No payment method in this session — create one in the previous step, or paste an id:"
+        label="No payment method selected — create one in the previous step, or paste an id:"
         kind="payment-method"
-        onImported={() => undefined}
+        onImported={onPmImported}
       />
     );
   }

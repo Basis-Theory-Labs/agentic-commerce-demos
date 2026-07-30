@@ -5,7 +5,7 @@
 // currency mismatch, MPP validation errors). Mint success renders the
 // credential reveal card — values are returned exactly once.
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Allowance, Credential } from "@/lib/types";
 import { callAgentic } from "@/lib/agenticClient";
 import { useApiLog } from "@/lib/apiLog";
@@ -306,8 +306,9 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
     await refreshAllowance();
   };
 
-  const mints = mintsFor(allowance);
-  const demos = errorDemosFor(allowance);
+  // Memoized so editable defaults (challenge expiries) don't churn per render.
+  const mints = useMemo(() => mintsFor(allowance), [allowance]);
+  const demos = useMemo(() => errorDemosFor(allowance), [allowance]);
 
   return (
     <div className="space-y-3">

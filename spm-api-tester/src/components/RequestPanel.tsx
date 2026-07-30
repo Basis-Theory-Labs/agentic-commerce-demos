@@ -31,6 +31,8 @@ export interface RequestPanelProps {
   onSuccess?: (result: unknown) => void | Promise<void>;
   onError?: (error: AgenticApiError) => void;
   disabled?: boolean;
+  /** Lets a parent serialize this panel with its other in-flight actions. */
+  onSendStateChange?: (sending: boolean) => void;
   children?: React.ReactNode;
 }
 
@@ -48,6 +50,7 @@ export function RequestPanel({
   onSuccess,
   onError,
   disabled = false,
+  onSendStateChange,
   children,
 }: RequestPanelProps) {
   const defaultJson = useMemo(
@@ -82,6 +85,7 @@ export function RequestPanel({
       return;
     }
     setSending(true);
+    onSendStateChange?.(true);
     try {
       const result = await callAgentic(
         {
@@ -114,6 +118,7 @@ export function RequestPanel({
       }
     } finally {
       setSending(false);
+      onSendStateChange?.(false);
     }
   };
 
