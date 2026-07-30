@@ -126,26 +126,14 @@ export function VerifyPanel({
   const provider = rail.provider;
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 rounded-xl border border-ink-200 bg-surface p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-        <div className="space-y-3">
-          <div>
-            <p className="mb-1.5 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
-              Allowance ID
-            </p>
-            <CopyChip value={allowance.id} />
-          </div>
-          <div>
-            <p className="mb-2 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
-              Rails
-            </p>
-            <RailChips rails={allowance.rails} />
-          </div>
-        </div>
-        <div>
-          <p className="mb-2 text-[11px] font-medium tracking-wide text-ink-500 uppercase sm:text-right">
-            Verification mode
-          </p>
+    <div className="space-y-2.5">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-ink-200 bg-surface p-2.5">
+        <span className="text-[10px] font-medium tracking-wide text-ink-500 uppercase">
+          Allowance
+        </span>
+        <CopyChip value={allowance.id} />
+        <RailChips rails={allowance.rails} />
+        <div className="ml-auto">
           <VariantToggle />
         </div>
       </div>
@@ -165,7 +153,7 @@ export function VerifyPanel({
           onActive={onActive}
         />
       )}
-      <details className="rounded-xl border border-ink-200 bg-surface px-4 py-3 text-xs text-ink-600">
+      <details className="rounded-lg border border-ink-200 bg-surface px-3 py-2 text-xs text-ink-600">
         <summary className="cursor-pointer font-semibold text-ink-900">
           Not simulatable with test cards
         </summary>
@@ -465,14 +453,9 @@ function ManualVerify({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {!verifyState && (
         <>
-          <p className="text-sm leading-relaxed text-ink-600">
-            Card networks require cardholder verification before an agentic-token rail releases
-            credentials. You drive the browser ceremony; Basis Theory validates every step with the
-            network server-to-server — nothing the browser sends can activate the rail by itself.
-          </p>
           <StartRequestPanel
             verifyPath={verifyPath}
             base={base}
@@ -487,19 +470,16 @@ function ManualVerify({
       )}
 
       {verifyState && nextAction && (
-        <div className="surface-shadow rounded-xl border border-ink-200 bg-surface p-4">
-          <h3 className="mb-4 font-mono text-sm font-semibold text-accent">
+        <div className="rounded-xl border border-ink-200 bg-surface p-3">
+          <h3 className="mb-2.5 font-mono text-xs font-semibold text-accent">
             next_action: {String(nextAction.type)}
           </h3>
 
           {nextAction.type === "passkey_session" && (
             <div className="space-y-2.5">
               <Callout title="Initialize Visa verification">
-                Mount Visa’s hosted iframe (hidden) and create an authentication session. The iframe
-                returns a secure token; <code>submit_session</code> hands it to Basis Theory, which
-                asks Visa what the cardholder must do next. The iframe URL and publishable
-                identifiers come from <code>next_action.embed</code> — served by the API so nothing
-                is hard-coded.
+                Create the hosted iframe session from <code>next_action.embed</code>, then submit
+                its secure token. Do not hard-code embed fields.
               </Callout>
               {!secureToken ? (
                 <Button
@@ -623,12 +603,10 @@ function ManualVerify({
             <div className="space-y-2.5">
               <Callout title={`Why ${nextAction.passkey_context.action}`}>
                 {nextAction.passkey_context.action === "REGISTER"
-                  ? "Visa found no payment passkey for this card on this device, so the popup will create one. REGISTER never activates the rail — after it succeeds, verification restarts and comes back as AUTHENTICATE."
-                  : "A payment passkey already exists for this card on this device, so the popup verifies with it."}{" "}
-                Visa decides from device attestation — your code passes <code>passkey_context</code>{" "}
-                through unchanged. The popup must open synchronously from your click; the resulting
-                assurance data goes back through <code>submit_passkey</code> for server-side
-                validation with Visa.
+                  ? "REGISTER creates a device passkey, then verification restarts as AUTHENTICATE."
+                  : "AUTHENTICATE verifies the existing device passkey."}{" "}
+                Open the popup synchronously and return its assurance data through{" "}
+                <code>submit_passkey</code>.
               </Callout>
               {isTest && (
                 <Callout>
@@ -658,10 +636,8 @@ function ManualVerify({
               {assurance && (
                 <>
                   <Callout tone="success">
-                    Ceremony complete. The body below is pre-filled from the real popup result —
-                    note <code>dfp_session_id</code> maps from the popup’s <code>rpID</code> and{" "}
-                    <code>fido_assertion_data.code</code> from <code>fidoBlob</code>. Review, edit
-                    if you like, then send.
+                    Ceremony complete. <code>rpID</code> maps to <code>dfp_session_id</code>;{" "}
+                    <code>fidoBlob</code> maps to <code>fido_assertion_data.code</code>.
                   </Callout>
                   <RequestPanel
                     method="POST"
@@ -679,9 +655,8 @@ function ManualVerify({
               {registerDone && (
                 <>
                   <Callout tone="success" title="Passkey created — now restart">
-                    REGISTER never activates the rail. Send <code>start</code> again (fresh{" "}
-                    <code>device_context</code>): the device is now bound, so verification jumps
-                    straight to an AUTHENTICATE ceremony — no OTP this time.
+                    REGISTER does not activate the rail. Start again with fresh device context to
+                    run AUTHENTICATE.
                   </Callout>
                   <StartRequestPanel
                     verifyPath={verifyPath}
@@ -703,13 +678,9 @@ function ManualVerify({
           {nextAction.type === "redirect" && (
             <div className="space-y-2.5">
               <Callout title="Why a redirect">
-                Mastercard’s authentication pages send <code>X-Frame-Options: DENY</code> —
-                embedding is impossible by design. The cardholder completes the hosted ceremony in a
-                popup (Mastercard creates a passkey there when the device needs one). The cardholder
-                approves “Add Allowance to {displayName}”, then sees “Returning to {displayName}…”.
-                A bridge message signals completion, and <code>complete</code> retrieves and
-                validates the result with Mastercard server-to-server — only that response can
-                activate the rail.
+                Mastercard forbids iframe embedding. Open its popup synchronously, validate the
+                bridge message’s origin and source, then send <code>complete</code>; only that API
+                response is authoritative.
               </Callout>
               {isTest && (
                 <Callout>
@@ -763,11 +734,9 @@ function ManualVerify({
       )}
 
       {verifyState && !nextAction && verifyState.status !== "active" && (
-        <div className="space-y-3 rounded-xl border border-ink-200 bg-surface p-4">
+        <div className="space-y-2.5 rounded-xl border border-ink-200 bg-surface p-3">
           <Callout tone="warning" title="Verification still pending">
-            The rail is <code>verification_required</code> with nothing for the browser to do — the
-            provider hasn’t finalized yet. Send <code>complete</code> again (it is authoritative and
-            idempotent), or restart verification below.
+            The provider has not finalized. Send idempotent <code>complete</code> again or restart.
           </Callout>
           {provider === "agentpay" && (
             <RequestPanel
@@ -841,19 +810,13 @@ function ManualVerify({
         </div>
       )}
       {isTest && provider === "vic" && (
-        <p className="text-xs text-ink-500">
-          “Skip ceremony” calls <code>submit_passkey</code> with a stub body, straight to active —
-          the mock ignores prior state and content (that is why it works even before{" "}
-          <code>start</code>); real Visa would reject it.
-        </p>
-      )}
-      {verifyState && provider === "vic" && (
-        <p className="text-xs text-ink-500">
-          Device-binding memory (per allowance): the mock marks the device bound as soon as{" "}
-          <code>submit_otp</code> succeeds; real Visa binds it when the REGISTER ceremony completes.
-          Either way, “Restart verification” skips the OTP — re-initialize the session, send{" "}
-          <code>submit_session</code>, and the ceremony comes back AUTHENTICATE.
-        </p>
+        <details className="rounded-lg border border-ink-200 bg-surface px-3 py-2 text-xs text-ink-600">
+          <summary className="cursor-pointer font-medium text-ink-800">Visa mock behavior</summary>
+          <p className="mt-2">
+            Skip ceremony submits a mock-only assurance body. After OTP, restart skips back to
+            AUTHENTICATE because device binding is remembered per allowance.
+          </p>
+        </details>
       )}
     </div>
   );
@@ -985,26 +948,13 @@ function SdkVerify({
   };
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm leading-relaxed text-ink-600">
-        This is the whole integration a customer ships: one factory call, one{" "}
-        <code>verifyAllowance</code>. The SDK collects device context, drives the Visa iframe/popup
-        or Mastercard redirect, renders its own OTP and interstitial UI, and resolves when the rail
-        is active. Its lifecycle events and sanitized typed failures stream into the inspector with
-        the <span className="font-mono">sdk</span> pill; its internal HTTP exchange is intentionally
-        owned by the SDK rather than reconstructed as a curl transcript.
-      </p>
-      <CodeBlock
-        title="The entire SDK integration"
-        language="js"
-        code={SDK_INTEGRATION_SNIPPET}
-        defaultOpen
-      />
+    <div className="space-y-3">
       {!active && (
         <Button onClick={run} loading={running} loadingLabel="SDK verifying — follow its prompts…">
           Verify with SDK
         </Button>
       )}
+      <CodeBlock title="The entire SDK integration" language="js" code={SDK_INTEGRATION_SNIPPET} />
       {error && (
         <div
           role="alert"

@@ -99,7 +99,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed top-[152px] right-4 left-4 z-[60] flex flex-col items-end gap-2 sm:left-auto sm:w-full sm:max-w-md 2xl:right-[576px]">
+      <div className="pointer-events-none fixed top-14 right-3 left-3 z-[60] flex flex-col items-end gap-2 sm:left-auto sm:w-full sm:max-w-md">
         {/* Two live regions so successes stay polite and errors interrupt. */}
         <div aria-live="polite" className="sr-only">
           {toasts

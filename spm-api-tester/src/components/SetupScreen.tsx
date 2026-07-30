@@ -22,52 +22,46 @@ export function SetupScreen({
   missingPublic: boolean;
 }) {
   return (
-    <main className="bg-dots min-h-screen px-5 py-12 sm:py-20">
-      <div className="surface-shadow mx-auto max-w-3xl space-y-7 rounded-2xl border border-ink-200 bg-surface p-6 sm:p-10">
+    <main className="bg-dots min-h-screen px-4 py-6 sm:py-10">
+      <div className="mx-auto max-w-3xl space-y-4 rounded-xl border border-ink-200 bg-surface p-4 sm:p-5">
         <div>
-          <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-accent uppercase">
+          <p className="mb-1 text-[10px] font-semibold tracking-[0.12em] text-accent uppercase">
             SPM API Tester
           </p>
-          <h1 className="text-3xl font-semibold sm:text-4xl">One-time setup</h1>
+          <h1 className="text-xl font-medium">One-time setup</h1>
         </div>
-        <p className="max-w-2xl text-base leading-relaxed text-ink-600">
-          The SPM API Tester needs two Basis Theory application keys before it can run. Copy{" "}
-          <code className="bg-ink-100 px-1">.env.example</code> to{" "}
-          <code className="bg-ink-100 px-1">.env.local</code>, set the values below, and restart
-          the dev server.
+        <p className="max-w-2xl text-sm text-ink-600">
+          Copy <code className="bg-ink-100 px-1">.env.example</code> to{" "}
+          <code className="bg-ink-100 px-1">.env.local</code>, add both application keys, and
+          restart the dev server.
         </p>
 
-        <ul className="grid gap-4 text-sm md:grid-cols-2">
+        <ul className="grid gap-3 text-sm md:grid-cols-2">
           <li
-            className={`rounded-xl border border-ink-200 bg-ink-50 p-5 ${
+            className={`rounded-lg border border-ink-200 bg-ink-50 p-3 ${
               missingPublic ? "" : "opacity-50"
             }`}
           >
-            <div className="font-mono text-sm font-semibold text-ink-950">
+            <div className="font-mono text-xs font-semibold text-ink-950">
               NEXT_PUBLIC_BT_API_KEY {missingPublic ? "— missing" : "— configured ✓"}
             </div>
-            <p className="mt-2 text-sm leading-relaxed text-ink-600">
-              A <b>public</b> application key. It runs in the browser (that is what public keys
-              are for) and needs the permissions{" "}
-              <code className="bg-ink-100 px-1">token:create</code>,{" "}
-              <code className="bg-ink-100 px-1">agentic:payment-method:create</code>,{" "}
-              and <code className="bg-ink-100 px-1">agentic:allowance:verify</code>. The
-              payment-method permission covers both create and rail retry; allowance reads stay
-              private.
+            <p className="mt-2 text-xs text-ink-600">
+              Public browser key with <code className="bg-ink-100 px-1">token:create</code>,{" "}
+              <code className="bg-ink-100 px-1">agentic:payment-method:create</code>, and{" "}
+              <code className="bg-ink-100 px-1">agentic:allowance:verify</code>.
             </p>
           </li>
           <li
-            className={`rounded-xl border border-ink-200 bg-ink-50 p-5 ${
+            className={`rounded-lg border border-ink-200 bg-ink-50 p-3 ${
               missingPrivate ? "" : "opacity-50"
             }`}
           >
-            <div className="font-mono text-sm font-semibold text-ink-950">
+            <div className="font-mono text-xs font-semibold text-ink-950">
               BT_API_KEY {missingPrivate ? "— missing" : "— configured ✓"}
             </div>
-            <div className="mt-2 text-sm leading-relaxed text-ink-600">
-              A <b>private</b> application key. It never leaves the Next.js server and needs
-              exactly:
-              <ul className="mt-1 list-disc pl-5 font-mono text-xs">
+            <div className="mt-2 text-xs text-ink-600">
+              Private server key with:
+              <ul className="mt-1 grid grid-cols-2 gap-x-3 font-mono text-[10px]">
                 <li>agentic:payment-method:get</li>
                 <li>agentic:payment-method:delete</li>
                 <li>agentic:allowance:create</li>
@@ -84,7 +78,6 @@ export function SetupScreen({
         <CodeBlock
           title="Setup"
           language="bash"
-          defaultOpen
           code={[
             "cp .env.example .env.local",
             "# set NEXT_PUBLIC_BT_API_KEY and BT_API_KEY (test tenant recommended)",

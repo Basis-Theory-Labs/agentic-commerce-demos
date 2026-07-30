@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { CredentialRevealCard } from "@/components/CredentialRevealCard";
 
 describe("CredentialRevealCard", () => {
-  it("presents card values as a copyable card plus a collapsible field list", () => {
+  it("presents spendable values as a compact collapsible field list", () => {
     const html = renderToStaticMarkup(
       <CredentialRevealCard
         credential={{
@@ -26,11 +26,10 @@ describe("CredentialRevealCard", () => {
     );
 
     expect(html).toContain("Credential ID");
-    expect(html).toContain("Created credential");
-    expect(html).toContain("Single-use card");
-    expect(html).toContain("5595 3563 8385 2890");
-    expect(html).toContain("Credential fields");
-    expect(html).toContain("4 values");
+    expect(html).toContain("Credential");
+    expect(html).toContain("5595356383852890");
+    expect(html).toContain("expiration month");
+    expect(html).toContain("cvc");
     expect(html).toContain("agentic-token · agentpay");
   });
 

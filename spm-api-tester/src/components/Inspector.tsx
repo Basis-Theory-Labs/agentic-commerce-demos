@@ -41,14 +41,14 @@ export default function Inspector() {
     <>
       <aside
         aria-label="API inspector"
-        className="sticky top-18 hidden h-[calc(100vh-4.5rem)] min-h-[560px] flex-col border-l border-ink-200 bg-surface 2xl:flex"
+        className="sticky top-12 hidden h-[calc(100vh-3rem)] min-h-[480px] flex-col border-l border-ink-200 bg-surface 2xl:flex"
       >
         <InspectorPanel entries={entries} clear={clear} />
       </aside>
 
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground shadow-xl transition-colors hover:bg-accent-hover 2xl:hidden"
+        className="fixed right-3 bottom-3 z-40 flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-accent-foreground shadow-lg transition-colors hover:bg-accent-hover 2xl:hidden"
         aria-expanded={open}
         aria-label={`${open ? "Hide" : "Show"} API inspector (${entries.length} activity entries)`}
       >
@@ -68,7 +68,7 @@ export default function Inspector() {
         </svg>
         {open ? "Hide" : "Inspector"}
         {entries.length > 0 && (
-          <span className="ml-1 rounded-md bg-accent-foreground px-2 py-0.5 text-xs text-accent">
+          <span className="rounded bg-accent-foreground px-1.5 py-0.5 text-[10px] text-accent">
             {entries.length}
           </span>
         )}
@@ -110,17 +110,14 @@ function InspectorPanel({
 }) {
   return (
     <>
-      <div className="flex min-h-18 items-center justify-between gap-4 border-b border-ink-200 bg-surface px-5">
+      <div className="flex min-h-12 items-center justify-between gap-3 border-b border-ink-200 bg-surface px-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-ink-950">API activity</h2>
-            <span className="rounded-md bg-ink-100 px-2 py-0.5 font-mono text-xs text-ink-700">
+            <h2 className="text-sm font-semibold text-ink-950">API activity</h2>
+            <span className="rounded bg-ink-100 px-1.5 py-0.5 font-mono text-[10px] text-ink-700">
               {entries.length}
             </span>
           </div>
-          <p className="mt-0.5 text-xs text-ink-500">
-            Newest first · select a call for wire details
-          </p>
         </div>
         <div className="flex items-center gap-2">
           {entries.length > 0 && (
@@ -154,31 +151,10 @@ function InspectorPanel({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-screen/35 p-4">
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-screen/35 p-2.5">
         {entries.length === 0 ? (
-          <div className="flex min-h-72 flex-col items-center justify-center rounded-xl border border-dashed border-ink-300 px-8 text-center">
-            <span
-              aria-hidden
-              className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-accent"
-            >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={1.75}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-                />
-              </svg>
-            </span>
-            <p className="text-sm font-medium text-ink-800">Waiting for your first call</p>
-            <p className="mt-1 text-xs text-ink-500">
-              Manual requests, Elements activity, and SDK lifecycle events will appear here.
-            </p>
+          <div className="flex min-h-28 items-center justify-center rounded-lg border border-dashed border-ink-300 px-4 text-center">
+            <p className="text-xs text-ink-500">API and SDK activity appears here.</p>
           </div>
         ) : (
           [...entries]
@@ -198,10 +174,10 @@ function InspectorRow({ entry, ordinal }: { entry: CallEntry; ordinal: number })
     entry.status === undefined ? "text-ink-500" : entry.ok ? "text-success" : "text-error";
 
   return (
-    <div className="surface-shadow overflow-hidden rounded-xl border border-ink-200 bg-surface text-sm">
+    <div className="overflow-hidden rounded-lg border border-ink-200 bg-surface text-sm">
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-start gap-3 rounded-none p-3.5 text-left transition-colors hover:bg-ink-50"
+        className="flex w-full items-start gap-2 rounded-none p-2.5 text-left transition-colors hover:bg-ink-50"
         aria-expanded={expanded}
       >
         <span className="w-6 shrink-0 pt-0.5 font-mono text-xs text-ink-400">
@@ -210,12 +186,12 @@ function InspectorRow({ entry, ordinal }: { entry: CallEntry; ordinal: number })
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span
-              className={`rounded-md border px-2 py-0.5 text-xs font-medium tracking-wide uppercase ${SOURCE_CLASSES[entry.source]}`}
+              className={`rounded-md border px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase ${SOURCE_CLASSES[entry.source]}`}
             >
               {SOURCE_LABEL[entry.source]}
             </span>
             {entry.source === "sdk" && (
-              <span className="rounded-md border border-info-border bg-info-soft px-2 py-0.5 text-xs font-medium tracking-wide text-info uppercase">
+              <span className="rounded-md border border-info-border bg-info-soft px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-info uppercase">
                 event
               </span>
             )}
@@ -237,7 +213,7 @@ function InspectorRow({ entry, ordinal }: { entry: CallEntry; ordinal: number })
               <span className="text-xs text-ink-500">{entry.duration_ms}ms</span>
             )}
           </div>
-          <div className="mt-1.5 font-mono text-xs break-all text-ink-900">{entry.label}</div>
+          <div className="mt-1 font-mono text-xs break-all text-ink-900">{entry.label}</div>
         </div>
         <svg
           className={`mt-1 h-3 w-3 text-ink-500 transition-transform ${expanded ? "rotate-90" : ""}`}
@@ -252,7 +228,7 @@ function InspectorRow({ entry, ordinal }: { entry: CallEntry; ordinal: number })
       </button>
 
       {expanded && (
-        <div className="space-y-2 border-t border-ink-200 bg-ink-50 px-4 pb-4">
+        <div className="space-y-1.5 border-t border-ink-200 bg-ink-50 px-3 pb-3">
           {entry.url && <Detail label="URL" value={entry.url} />}
           {entry.request !== undefined && entry.request !== null && (
             <Detail label="Request" value={stringify(entry.request)} pre />
@@ -291,7 +267,7 @@ function Detail({ label, value, pre }: { label: string; value: string; pre?: boo
   };
   return (
     <div>
-      <div className="mt-2 mb-1 flex items-center justify-between">
+      <div className="mt-1.5 mb-1 flex items-center justify-between">
         <span className="text-xs font-medium tracking-wide text-ink-500 uppercase">{label}</span>
         <button
           onClick={copy}
@@ -301,11 +277,11 @@ function Detail({ label, value, pre }: { label: string; value: string; pre?: boo
         </button>
       </div>
       {pre ? (
-        <pre className="max-h-96 overflow-auto rounded-lg border border-ink-200 bg-screen/65 px-3.5 py-3 font-mono text-[12px] leading-relaxed whitespace-pre">
+        <pre className="max-h-72 overflow-auto rounded-lg border border-ink-200 bg-screen/65 p-2.5 font-mono text-[11px] leading-[1.5] whitespace-pre">
           <HighlightedCode code={value} language="json" />
         </pre>
       ) : (
-        <div className="max-h-72 overflow-auto rounded-lg border border-ink-200 bg-screen/65 px-3.5 py-3 font-mono text-xs break-all text-ink-800">
+        <div className="max-h-56 overflow-auto rounded-lg border border-ink-200 bg-screen/65 p-2.5 font-mono text-xs break-all text-ink-800">
           {value}
         </div>
       )}

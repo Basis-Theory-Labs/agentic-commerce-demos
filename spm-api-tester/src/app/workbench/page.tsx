@@ -5,7 +5,7 @@
 // requests, PATCH and cancel allowances, retry rails, mint every format, and
 // import external ids into the session registry.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { CardTokenizePanel } from "@/components/CardTokenizePanel";
 import { ImportPanel } from "@/components/ImportPanel";
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { CopyChip } from "@/components/ui/CopyChip";
 import { HighlightedCode } from "@/components/ui/HighlightedCode";
+import { StatusPill } from "@/components/ui/StatusPill";
 import { callAgentic } from "@/lib/agenticClient";
 import { useApiLog } from "@/lib/apiLog";
 import { scenarioForAllowance, useSession, type AllowanceEntry } from "@/lib/session";
@@ -33,52 +34,85 @@ export default function WorkbenchPage() {
   );
 }
 
+const WORKBENCH_RESOURCES = [
+  ["cards", "Cards & Tokens"],
+  ["payment-methods", "Payment Methods"],
+  ["allowances", "Allowances"],
+  ["verification", "Verification"],
+  ["credentials", "Credentials"],
+] as const;
+
+type WorkbenchResource = (typeof WORKBENCH_RESOURCES)[number][0];
+
 function Workbench() {
-  const resources = [
-    ["cards", "Cards & Tokens"],
-    ["payment-methods", "Payment Methods"],
-    ["allowances", "Allowances"],
-    ["verification", "Verification"],
-    ["credentials", "Credentials"],
-  ] as const;
+  const [activeResource, setActiveResource] = useState<WorkbenchResource>("cards");
+
+  useEffect(() => {
+    const syncHash = () => {
+      const id = window.location.hash.slice(1);
+      if (WORKBENCH_RESOURCES.some(([resource]) => resource === id)) {
+        setActiveResource(id as WorkbenchResource);
+      }
+    };
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    return () => window.removeEventListener("hashchange", syncHash);
+  }, []);
+
+  const selectResource = (id: WorkbenchResource) => {
+    setActiveResource(id);
+    const url = new URL(window.location.href);
+    url.hash = id;
+    window.history.replaceState(null, "", url);
+  };
 
   return (
-    <main className="mx-auto max-w-[1240px] px-5 py-8 pb-20 sm:px-8 lg:px-10 lg:py-10">
-      <header className="max-w-3xl">
-        <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-accent uppercase">
-          Resource workspace
-        </p>
-        <h1 className="text-3xl font-semibold sm:text-4xl">Workbench</h1>
-        <p className="mt-3 text-base leading-relaxed text-ink-600">
-          Every resource type, freeform. Panels accept resources created here, in the Guided Flow,
-          or pasted from anywhere else.
-        </p>
-      </header>
+    <main className="mx-auto max-w-[1240px] px-4 py-4 pb-12 sm:px-6">
+      <h1 className="sr-only">Workbench</h1>
 
       <nav
         aria-label="Workbench resources"
-        className="my-6 flex gap-1 overflow-x-auto rounded-xl border border-ink-200 bg-surface p-1"
+        role="tablist"
+        className="mb-3 flex gap-1 overflow-x-auto rounded-lg border border-ink-200 bg-surface p-0.5"
       >
-        {resources.map(([id, label], index) => (
-          <a
+        {WORKBENCH_RESOURCES.map(([id, label], index) => (
+          <button
             key={id}
-            href={`#${id}`}
-            className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-50 hover:text-ink-900"
+            type="button"
+            role="tab"
+            aria-selected={activeResource === id}
+            aria-controls={id}
+            onClick={() => selectResource(id)}
+            className={`flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+              activeResource === id
+                ? "bg-accent-soft text-accent"
+                : "text-ink-600 hover:bg-ink-50 hover:text-ink-900"
+            }`}
           >
-            <span className="font-mono text-xs text-ink-400">
+            <span className="font-mono text-[10px] text-ink-400">
               {String(index + 1).padStart(2, "0")}
             </span>
             {label}
-          </a>
+          </button>
         ))}
       </nav>
 
-      <div className="space-y-6">
-        <TokensSection />
-        <PaymentMethodsSection />
-        <AllowancesSection />
-        <VerificationSection />
-        <CredentialsSection />
+      <div>
+        <div role="tabpanel" hidden={activeResource !== "cards"}>
+          <TokensSection />
+        </div>
+        <div role="tabpanel" hidden={activeResource !== "payment-methods"}>
+          <PaymentMethodsSection />
+        </div>
+        <div role="tabpanel" hidden={activeResource !== "allowances"}>
+          <AllowancesSection />
+        </div>
+        <div role="tabpanel" hidden={activeResource !== "verification"}>
+          <VerificationSection />
+        </div>
+        <div role="tabpanel" hidden={activeResource !== "credentials"}>
+          <CredentialsSection />
+        </div>
       </div>
     </main>
   );
@@ -99,13 +133,55 @@ function Section({
     <section
       id={id}
       aria-label={title}
-      className="surface-shadow scroll-mt-28 overflow-hidden rounded-2xl border border-ink-200 bg-surface"
+      className="scroll-mt-24 overflow-hidden rounded-xl border border-ink-200 bg-surface"
     >
-      <div className="border-b border-ink-200 px-5 py-4">
-        <h2 className="text-xl font-semibold">{title}</h2>
-        <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-ink-600">{lead}</p>
+      <div className="border-b border-ink-200 px-3 py-2">
+        <h2 className="text-base font-medium">{title}</h2>
+        <p className="mt-0.5 max-w-3xl text-xs text-ink-500">{lead}</p>
       </div>
-      <div className="space-y-4 p-4 sm:p-5">{children}</div>
+      <div className="space-y-2.5 p-3">{children}</div>
+    </section>
+  );
+}
+
+function ImportExisting({
+  kind,
+  label,
+}: {
+  kind: React.ComponentProps<typeof ImportPanel>["kind"];
+  label: string;
+}) {
+  return (
+    <details className="rounded-lg border border-ink-200 bg-ink-50/40">
+      <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-ink-700">
+        Import existing {label}
+      </summary>
+      <div className="border-t border-ink-200 p-2.5">
+        <ImportPanel kind={kind} />
+      </div>
+    </details>
+  );
+}
+
+function CreatedResources({
+  label,
+  count,
+  children,
+}: {
+  label: string;
+  count: number;
+  children: React.ReactNode;
+}) {
+  if (count === 0) return null;
+  return (
+    <section className="space-y-2 border-t border-ink-200 pt-2.5">
+      <div className="flex items-center gap-2">
+        <h3 className="text-xs font-medium text-ink-700">Created {label}</h3>
+        <span className="rounded bg-ink-100 px-1.5 py-0.5 font-mono text-[10px] text-ink-500">
+          {count}
+        </span>
+      </div>
+      {children}
     </section>
   );
 }
@@ -115,27 +191,21 @@ function Section({
 function TokensSection() {
   const { state } = useSession();
   return (
-    <Section
-      id="cards"
-      title="Cards & Tokens"
-      lead="Tokenize as many cards as you like — mock scenarios or your own via Elements — or import an existing token id."
-    >
+    <Section id="cards" title="Cards & Tokens" lead="Tokenize a mock or real card.">
       <CardTokenizePanel />
-      <ImportPanel kind="token" />
-      {state.tokens.length > 0 && (
-        <ul className="space-y-2 rounded-xl border border-ink-200 bg-ink-50 p-4 text-xs">
+      <ImportExisting kind="token" label="token" />
+      <CreatedResources label="tokens" count={state.tokens.length}>
+        <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200 bg-ink-50/40 text-xs">
           {state.tokens.map((token) => (
-            <li key={token.id} className="flex flex-wrap items-center gap-2">
+            <li key={token.id} className="flex flex-wrap items-center gap-2 px-2.5 py-2">
               <CopyChip value={token.id} />
               <span className="text-ink-500">
-                {token.scenarioPan
-                  ? `mock ${token.scenarioPan.replace(/(\d{4})/g, "$1 ").trim()}`
-                  : token.via}
+                {token.scenarioPan ? `mock •••• ${token.scenarioPan.slice(-4)}` : token.via}
               </span>
             </li>
           ))}
         </ul>
-      )}
+      </CreatedResources>
     </Section>
   );
 }
@@ -155,7 +225,7 @@ function PaymentMethodsSection() {
     <Section
       id="payment-methods"
       title="Payment Methods"
-      lead="Create from any session token or a pasted token id. Add an idempotency key when you want replay protection; rails provision in parallel."
+      lead="Create from a card token and inspect provisioned rails."
     >
       {state.tokens.length > 0 ? (
         <>
@@ -164,7 +234,7 @@ function PaymentMethodsSection() {
             <select
               value={effectiveTokenId}
               onChange={(e) => setTokenId(e.target.value)}
-              className="mt-1.5 block w-full max-w-lg rounded-lg border border-ink-300 bg-ink-50 px-3 py-2.5 font-mono text-xs"
+              className="mt-1 block w-full max-w-lg rounded-lg border border-ink-300 bg-ink-50 px-3 py-2 font-mono text-xs"
             >
               {state.tokens.map((token) => (
                 <option key={token.id} value={token.id}>
@@ -203,12 +273,43 @@ function PaymentMethodsSection() {
           />
         </>
       ) : (
-        <Callout>Tokenize a card above first — or import an existing payment method:</Callout>
+        <Callout>
+          Create a token in Cards &amp; Tokens, or import an existing payment method.
+        </Callout>
       )}
-      <ImportPanel kind="payment-method" />
-      {state.paymentMethods.map((entry) => (
-        <PaymentMethodCard key={entry.resource.id} entry={entry} allowDelete />
-      ))}
+      <ImportExisting kind="payment-method" label="payment method" />
+      <CreatedResources label="payment methods" count={state.paymentMethods.length}>
+        <div className="space-y-2">
+          {state.paymentMethods.map((entry) => (
+            <details
+              key={entry.resource.id}
+              className="group overflow-hidden rounded-lg border border-ink-200 bg-surface"
+            >
+              <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-xs [&::-webkit-details-marker]:hidden">
+                <span className="min-w-0 flex-1 truncate font-mono text-ink-800">
+                  {entry.resource.id}
+                </span>
+                <span className="text-ink-500">
+                  {entry.resource.card?.brand ?? "card"} •••• {entry.resource.card?.last4}
+                </span>
+                <span className="text-[10px] text-ink-400">
+                  {(entry.resource.rails ?? []).filter((rail) => rail.status === "enabled").length}/
+                  {entry.resource.rails?.length ?? 0} rails
+                </span>
+                <span
+                  aria-hidden
+                  className="text-ink-400 transition-transform group-open:rotate-90"
+                >
+                  ›
+                </span>
+              </summary>
+              <div className="border-t border-ink-200 bg-ink-50/30 p-2.5">
+                <PaymentMethodCard entry={entry} allowDelete />
+              </div>
+            </details>
+          ))}
+        </div>
+      </CreatedResources>
     </Section>
   );
 }
@@ -233,7 +334,7 @@ function AllowancesSection() {
     <Section
       id="allowances"
       title="Allowances"
-      lead="Create several on one payment method, PATCH the mandate (amount, description, expiry), cancel, retry failed rails, and inspect provider errors."
+      lead="Create, update, retry, or cancel a spend mandate."
     >
       {usablePms.length > 0 ? (
         <>
@@ -242,7 +343,7 @@ function AllowancesSection() {
             <select
               value={effectivePmId}
               onChange={(e) => setPmId(e.target.value)}
-              className="mt-1.5 block w-full max-w-lg rounded-lg border border-ink-300 bg-ink-50 px-3 py-2.5 font-mono text-xs"
+              className="mt-1 block w-full max-w-lg rounded-lg border border-ink-300 bg-ink-50 px-3 py-2 font-mono text-xs"
             >
               {usablePms.map((pm) => (
                 <option key={pm.resource.id} value={pm.resource.id}>
@@ -280,14 +381,17 @@ function AllowancesSection() {
         </>
       ) : (
         <Callout>
-          No payment method with an enabled rail in this session — create one above or import an
-          allowance directly:
+          Create an enabled payment method in Payment Methods, or import an allowance.
         </Callout>
       )}
-      <ImportPanel kind="allowance" />
-      {state.allowances.map((entry) => (
-        <AllowanceCard key={entry.resource.id} entry={entry} />
-      ))}
+      <ImportExisting kind="allowance" label="allowance" />
+      <CreatedResources label="allowances" count={state.allowances.length}>
+        <div className="space-y-2">
+          {state.allowances.map((entry) => (
+            <AllowanceCard key={entry.resource.id} entry={entry} />
+          ))}
+        </div>
+      </CreatedResources>
     </Section>
   );
 }
@@ -337,131 +441,138 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
   };
 
   return (
-    <div className="space-y-4 rounded-xl border border-ink-200 bg-ink-50/40 p-4 sm:p-5">
-      <AllowanceSummary allowance={allowance} />
+    <details className="group overflow-hidden rounded-lg border border-ink-200 bg-surface">
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-xs [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0 flex-1 truncate font-mono text-ink-800">{allowance.id}</span>
+        <span className="font-mono text-ink-500">
+          {allowance.amount?.value ?? "—"} {allowance.amount?.currency ?? ""}
+        </span>
+        <StatusPill status={allowance.status ?? "unknown"} />
+        <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-90">
+          ›
+        </span>
+      </summary>
 
-      <details>
-        <summary className="cursor-pointer text-sm font-semibold text-ink-900">
-          PATCH — update the mandate
-        </summary>
-        <div className="mt-3 space-y-3">
-          <Callout>
-            Updates are provider-first: the network-side mandate changes before the same values
-            commit locally, and mints are blocked while the update is in flight. Send any subset of{" "}
-            <code>amount</code>, <code>description</code>, <code>expires_at</code> — unknown keys
-            are rejected.
-          </Callout>
-          <RequestPanel
-            method="PATCH"
-            path={`/allowances/${allowance.id}`}
-            auth="proxy"
-            defaultBody={{
-              amount: {
-                value: (Number(allowance.amount?.value ?? "20") + 10).toFixed(2),
-                currency: allowance.amount?.currency ?? "USD",
-              },
-              description: allowance.description ?? "Updated mandate",
-            }}
-            sendLabel="PATCH Allowance"
-            successToast={() => ({ title: "Allowance updated" })}
-            onSuccess={(result) =>
-              dispatch({
-                type: "upsertAllowance",
-                entry: { ...entry, resource: result as Allowance },
-              })
-            }
-          />
-        </div>
-      </details>
+      <div className="space-y-2.5 border-t border-ink-200 bg-ink-50/30 p-3">
+        <AllowanceSummary allowance={allowance} />
 
-      <div className="flex flex-wrap items-center gap-2">
-        {errorRails.map((rail) => {
-          const key = `${rail.rail}:${rail.provider}`;
-          return (
+        <details className="rounded-lg border border-ink-200 bg-surface">
+          <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-ink-700">
+            Update allowance
+          </summary>
+          <div className="border-t border-ink-200 p-2.5">
+            <RequestPanel
+              method="PATCH"
+              path={`/allowances/${allowance.id}`}
+              auth="proxy"
+              defaultBody={{
+                amount: {
+                  value: (Number(allowance.amount?.value ?? "20") + 10).toFixed(2),
+                  currency: allowance.amount?.currency ?? "USD",
+                },
+                description: allowance.description ?? "Updated mandate",
+              }}
+              sendLabel="Update Allowance"
+              successToast={() => ({ title: "Allowance updated" })}
+              onSuccess={(result) =>
+                dispatch({
+                  type: "upsertAllowance",
+                  entry: { ...entry, resource: result as Allowance },
+                })
+              }
+            />
+          </div>
+        </details>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          {errorRails.map((rail) => {
+            const key = `${rail.rail}:${rail.provider}`;
+            return (
+              <Button
+                key={key}
+                variant="ghost"
+                small
+                loading={retrying.has(key)}
+                disabled={cancelling}
+                onClick={async () => {
+                  setRetryingFor(key, true);
+                  try {
+                    const updated = await callAgentic<Allowance>(
+                      {
+                        method: "POST",
+                        path: `/allowances/${allowance.id}/rails/retry`,
+                        body: { rail: rail.rail, provider: rail.provider },
+                        auth: "proxy",
+                        tag: "rails/retry",
+                      },
+                      logger,
+                    );
+                    if (!cancelled.current) {
+                      dispatch({ type: "upsertAllowance", entry: { ...entry, resource: updated } });
+                    }
+                  } catch (error) {
+                    toast.error(error);
+                  } finally {
+                    setRetryingFor(key, false);
+                  }
+                }}
+              >
+                Retry {rail.rail} · {rail.provider}
+              </Button>
+            );
+          })}
+          {errorRails.length > 0 && (
             <Button
-              key={key}
               variant="ghost"
               small
-              loading={retrying.has(key)}
-              disabled={cancelling}
               onClick={async () => {
-                setRetryingFor(key, true);
                 try {
-                  const updated = await callAgentic<Allowance>(
-                    {
-                      method: "POST",
-                      path: `/allowances/${allowance.id}/rails/retry`,
-                      body: { rail: rail.rail, provider: rail.provider },
-                      auth: "proxy",
-                      tag: "rails/retry",
-                    },
+                  const result = await callAgentic<ProviderErrorPage>(
+                    { method: "GET", path: `/allowances/${allowance.id}/errors`, auth: "proxy" },
                     logger,
                   );
-                  if (!cancelled.current) {
-                    dispatch({ type: "upsertAllowance", entry: { ...entry, resource: updated } });
-                  }
+                  setErrors({ ...result, data: result.data ?? [] });
                 } catch (error) {
                   toast.error(error);
-                } finally {
-                  setRetryingFor(key, false);
                 }
               }}
             >
-              Retry {rail.rail} · {rail.provider}
+              View provider errors
             </Button>
-          );
-        })}
-        <Button
-          variant="ghost"
-          small
-          onClick={async () => {
-            try {
-              const result = await callAgentic<ProviderErrorPage>(
-                { method: "GET", path: `/allowances/${allowance.id}/errors`, auth: "proxy" },
-                logger,
-              );
-              setErrors({ ...result, data: result.data ?? [] });
-            } catch (error) {
-              toast.error(error);
-            }
-          }}
-        >
-          View provider errors
-        </Button>
-        {allowance.status !== "cancelled" &&
-          (confirmingCancel ? (
-            <>
-              <span className="text-xs text-error">
-                Network-side purchase instructions are cancelled with it.
-              </span>
-              <Button variant="destructive" small loading={cancelling} onClick={cancel}>
-                Confirm cancel
+          )}
+          {allowance.status !== "cancelled" &&
+            (confirmingCancel ? (
+              <>
+                <span className="text-xs text-error">This cancels its purchase instructions.</span>
+                <Button variant="destructive" small loading={cancelling} onClick={cancel}>
+                  Confirm cancel
+                </Button>
+                <Button variant="ghost" small onClick={() => setConfirmingCancel(false)}>
+                  Keep it
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="destructive"
+                small
+                disabled={retrying.size > 0}
+                onClick={() => setConfirmingCancel(true)}
+              >
+                Cancel
               </Button>
-              <Button variant="ghost" small onClick={() => setConfirmingCancel(false)}>
-                Keep it
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="destructive"
-              small
-              disabled={retrying.size > 0}
-              onClick={() => setConfirmingCancel(true)}
-            >
-              Cancel allowance
-            </Button>
-          ))}
-      </div>
-
-      {errors && (
-        <div className="rounded-lg border border-ink-200 bg-ink-50 p-3 text-xs">
-          <ProviderErrorList
-            page={errors}
-            emptyLabel="No provider errors recorded for this allowance."
-          />
+            ))}
         </div>
-      )}
-    </div>
+
+        {errors && (
+          <div className="rounded-lg border border-ink-200 bg-ink-50 p-2.5 text-xs">
+            <ProviderErrorList
+              page={errors}
+              emptyLabel="No provider errors recorded for this allowance."
+            />
+          </div>
+        )}
+      </div>
+    </details>
   );
 }
 
@@ -476,7 +587,7 @@ function AllowancePicker({ value, onChange }: { value: string; onChange: (id: st
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 block w-full max-w-lg rounded-lg border border-ink-300 bg-ink-50 px-3 py-2.5 font-mono text-xs"
+        className="mt-1 block w-full max-w-lg rounded-lg border border-ink-300 bg-ink-50 px-3 py-2 font-mono text-xs"
       >
         {state.allowances.map((entry) => (
           <option key={entry.resource.id} value={entry.resource.id}>
@@ -502,7 +613,7 @@ function VerificationSection() {
     <Section
       id="verification"
       title="Verification"
-      lead="Pick any allowance and run either flow variant. Compare the Manual wire timeline with the SDK's lifecycle events and typed failures in the inspector."
+      lead="Verify an allowance with the raw API or SDK."
     >
       {entry ? (
         <>
@@ -514,7 +625,7 @@ function VerificationSection() {
           />
         </>
       ) : (
-        <Callout>No allowances in this session yet — create or import one above.</Callout>
+        <Callout>Create or import an allowance in Allowances.</Callout>
       )}
     </Section>
   );
@@ -533,7 +644,7 @@ function CredentialsSection() {
     <Section
       id="credentials"
       title="Credentials"
-      lead="Mint every format the rails support, replay idempotency keys on purpose, and inspect metadata. Values appear once, in the reveal card."
+      lead="Mint credentials or inspect their metadata."
     >
       {entry ? (
         <>
@@ -546,7 +657,7 @@ function CredentialsSection() {
           <CredentialLookup key={`lookup-${effectiveId}`} allowanceId={effectiveId} />
         </>
       ) : (
-        <Callout>No allowances in this session yet — create or import one above.</Callout>
+        <Callout>Create or import an allowance in Allowances.</Callout>
       )}
     </Section>
   );
@@ -559,50 +670,53 @@ function CredentialLookup({ allowanceId }: { allowanceId: string }) {
   const [fetchedMeta, setFetchedMeta] = useState<Record<string, unknown> | null>(null);
 
   return (
-    <div>
-      <label className="mb-1.5 block text-xs font-medium tracking-wide text-ink-500 uppercase">
-        Look up a credential id on this allowance (metadata only)
-      </label>
-      <div className="flex flex-wrap gap-2">
-        <input
-          value={credId}
-          onChange={(e) => setCredId(e.target.value)}
-          placeholder="cred_…"
-          spellCheck={false}
-          className="min-w-64 flex-1 rounded-lg border border-ink-300 bg-ink-50 px-3 py-2 font-mono text-xs text-ink-900 focus:border-accent focus:outline-none"
-        />
-        <Button
-          variant="ghost"
-          small
-          onClick={async () => {
-            const id = credId.trim();
-            if (!id.startsWith("cred_")) {
-              toast.error(new Error("That doesn't look like a credential id (cred_…)."));
-              return;
-            }
-            try {
-              const meta = await callAgentic<Record<string, unknown>>(
-                {
-                  method: "GET",
-                  path: `/allowances/${allowanceId}/credentials/${id}`,
-                  auth: "proxy",
-                },
-                logger,
-              );
-              setFetchedMeta(meta);
-            } catch (error) {
-              toast.error(error);
-            }
-          }}
-        >
-          GET
-        </Button>
+    <details className="rounded-lg border border-ink-200 bg-surface">
+      <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-ink-700">
+        Fetch credential metadata
+      </summary>
+      <div className="border-t border-ink-200 p-2.5">
+        <div className="flex flex-wrap gap-2">
+          <input
+            value={credId}
+            onChange={(e) => setCredId(e.target.value)}
+            placeholder="cred_…"
+            aria-label="Credential ID"
+            spellCheck={false}
+            className="min-w-64 flex-1 rounded-lg border border-ink-300 bg-ink-50 px-3 py-1.5 font-mono text-xs text-ink-900 focus:border-accent focus:outline-none"
+          />
+          <Button
+            variant="ghost"
+            small
+            onClick={async () => {
+              const id = credId.trim();
+              if (!id.startsWith("cred_")) {
+                toast.error(new Error("That doesn't look like a credential id (cred_…)."));
+                return;
+              }
+              try {
+                const meta = await callAgentic<Record<string, unknown>>(
+                  {
+                    method: "GET",
+                    path: `/allowances/${allowanceId}/credentials/${id}`,
+                    auth: "proxy",
+                  },
+                  logger,
+                );
+                setFetchedMeta(meta);
+              } catch (error) {
+                toast.error(error);
+              }
+            }}
+          >
+            GET
+          </Button>
+        </div>
+        {fetchedMeta && (
+          <pre className="mt-2.5 max-h-64 overflow-auto rounded-lg border border-ink-200 bg-ink-50 p-2.5 font-mono text-xs">
+            <HighlightedCode code={JSON.stringify(fetchedMeta, null, 2)} language="json" />
+          </pre>
+        )}
       </div>
-      {fetchedMeta && (
-        <pre className="mt-3 max-h-64 overflow-auto rounded-lg border border-ink-200 bg-ink-50 p-3 font-mono text-xs">
-          <HighlightedCode code={JSON.stringify(fetchedMeta, null, 2)} language="json" />
-        </pre>
-      )}
-    </div>
+    </details>
   );
 }

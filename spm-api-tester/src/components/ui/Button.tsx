@@ -42,7 +42,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={`inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors ${
-        small ? "px-3 py-1.5 text-xs" : "px-5 py-2.5 text-sm"
+        small ? "px-2.5 py-1.5 text-xs" : "px-4 py-2 text-sm"
       } ${VARIANT_CLASSES[variant]} disabled:cursor-not-allowed ${className}`}
       {...rest}
     >

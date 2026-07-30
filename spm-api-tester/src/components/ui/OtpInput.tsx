@@ -92,7 +92,7 @@ export function OtpInput({
             autoComplete={index === 0 ? "one-time-code" : "off"}
             aria-label={`Digit ${index + 1} of ${length}`}
             maxLength={length}
-            className={`h-12 w-11 rounded-lg border bg-ink-50 text-center font-mono text-lg text-ink-950 focus:border-accent focus:outline-none disabled:bg-ink-100 ${
+            className={`h-10 w-9 rounded-lg border bg-ink-50 text-center font-mono text-base text-ink-950 focus:border-accent focus:outline-none disabled:bg-ink-100 ${
               error ? "border-error" : "border-ink-300"
             }`}
           />

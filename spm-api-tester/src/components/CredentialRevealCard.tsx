@@ -68,95 +68,58 @@ export function CredentialRevealCard({
 }) {
   const rows = rowsFor(credential);
   const format = credential.credential.format;
-  const isCard = format === "card" && rows.some((row) => row.label === "number");
 
   return (
     <details
       open={defaultOpen}
-      className="group/reveal surface-shadow overflow-hidden rounded-xl border border-accent/25 bg-surface"
+      className="group/reveal overflow-hidden rounded-lg border border-accent/25 bg-surface"
     >
-      <summary className="cursor-pointer list-none bg-ink-50/55 px-4 py-3 transition-colors hover:bg-ink-100/70 [&::-webkit-details-marker]:hidden">
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold tracking-[0.14em] text-accent uppercase">
-              Created credential
-            </p>
-            <p className="mt-1 truncate font-mono text-sm text-ink-900">{credential.id}</p>
-          </div>
-          <div className="flex items-center gap-4 sm:justify-end">
-            <div>
-              <p className="mb-1 text-[10px] font-medium tracking-wide text-ink-500 uppercase">
-                Format
-              </p>
-              <span className="rounded-md border border-accent/30 bg-accent-soft px-2 py-1 text-[11px] font-semibold text-accent uppercase">
-                {format}
-              </span>
-            </div>
-            <div className="hidden sm:block">
-              <p className="mb-1 text-[10px] font-medium tracking-wide text-ink-500 uppercase">
-                Amount
-              </p>
-              <p className="font-mono text-xs text-ink-800">
-                {credential.amount?.value ?? "—"} {credential.amount?.currency ?? ""}
-              </p>
-            </div>
-            <span
-              aria-hidden
-              className="ml-auto text-xl leading-none text-ink-500 transition-transform group-open/reveal:rotate-90 sm:ml-1"
-            >
-              ›
-            </span>
-          </div>
-        </div>
+      <summary className="flex cursor-pointer list-none items-center gap-2 bg-ink-50/55 px-3 py-2 text-xs transition-colors hover:bg-ink-100/70 [&::-webkit-details-marker]:hidden">
+        <span className="text-[10px] font-semibold tracking-wide text-accent uppercase">
+          Credential
+        </span>
+        <span className="min-w-0 flex-1 truncate font-mono text-ink-900">{credential.id}</span>
+        <span className="hidden font-mono text-[11px] text-ink-500 sm:inline">
+          {credential.amount?.value ?? "—"} {credential.amount?.currency ?? ""}
+        </span>
+        <span className="rounded-md border border-accent/30 bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent uppercase">
+          {format}
+        </span>
+        <span
+          aria-hidden
+          className="text-base leading-none text-ink-500 transition-transform group-open/reveal:rotate-90"
+        >
+          ›
+        </span>
       </summary>
-      <div className="space-y-3.5 border-t border-accent/20 p-4">
-        <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-ink-200 bg-ink-50/45 px-3 py-2.5">
-          <div className="min-w-0">
-            <p className="mb-1 text-[10px] font-medium tracking-wide text-ink-500 uppercase">
-              Credential ID
-            </p>
-            <CopyChip value={credential.id} />
-          </div>
-          <p className="text-xs text-ink-500">
-            Collapse this card after copying the one-time values.
+      <div className="space-y-2.5 border-t border-accent/20 p-3">
+        <div>
+          <p className="mb-1 text-[10px] font-medium tracking-wide text-ink-500 uppercase">
+            Credential ID
           </p>
+          <CopyChip value={credential.id} />
         </div>
 
         <Callout tone="warning">
-          This credential value is only shown once — it is not retrievable again. Copy what you need
-          now.
+          Shown once. Copy the spendable values before leaving this page.
         </Callout>
 
-        {isCard && <CardCredentialPreview rows={rows} />}
-
         {rows.length > 0 ? (
-          <details
-            className="group overflow-hidden rounded-xl border border-ink-200 bg-ink-50/35"
-            open={!isCard}
-          >
-            <summary className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-ink-900 transition-colors hover:bg-ink-50">
-              <span>Credential fields</span>
-              <span className="flex items-center gap-2 text-xs font-normal text-ink-500">
-                {rows.length} {rows.length === 1 ? "value" : "values"}
-                <span className="transition-transform group-open:rotate-90">›</span>
-              </span>
-            </summary>
-            <dl className="divide-y divide-ink-200 border-t border-ink-200 bg-surface px-4">
-              {rows.map((row) => (
-                <div
-                  key={row.label}
-                  className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                >
-                  <dt className="text-xs font-medium tracking-wide text-ink-500 uppercase">
-                    {row.label.replaceAll("_", " ")}
-                  </dt>
-                  <dd className="min-w-0 sm:text-right">
-                    <CopyChip value={row.value} />
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </details>
+          <dl className="grid overflow-hidden rounded-lg border border-ink-200 bg-ink-50/35 sm:grid-cols-2">
+            {rows.map((row) => (
+              <div
+                key={row.label}
+                className="flex min-w-0 items-center justify-between gap-3 border-b border-ink-200 px-3 py-2 last:border-b-0 sm:[&:nth-child(odd)]:border-r"
+              >
+                <dt className="text-[10px] font-medium tracking-wide text-ink-500 uppercase">
+                  {row.label.replaceAll("_", " ")}
+                </dt>
+                <dd className="min-w-0 text-right">
+                  <CopyChip value={row.value} />
+                </dd>
+              </div>
+            ))}
+          </dl>
         ) : (
           <pre className="max-h-64 overflow-auto rounded-lg border border-ink-200 bg-ink-50 p-3 font-mono text-xs">
             <HighlightedCode
@@ -166,11 +129,7 @@ export function CredentialRevealCard({
           </pre>
         )}
 
-        <dl className="grid gap-3 border-t border-ink-200 pt-4 text-xs sm:grid-cols-3">
-          <CredentialMeta
-            label="Amount"
-            value={`${credential.amount?.value ?? "—"} ${credential.amount?.currency ?? ""}`}
-          />
+        <dl className="grid gap-2 border-t border-ink-200 pt-2.5 text-xs sm:grid-cols-2">
           <CredentialMeta
             label="Expires"
             value={
@@ -185,56 +144,6 @@ export function CredentialRevealCard({
         </dl>
       </div>
     </details>
-  );
-}
-
-function CardCredentialPreview({ rows }: { rows: FieldRow[] }) {
-  const value = (label: string) => rows.find((row) => row.label === label)?.value ?? "—";
-  const number = value("number");
-  const displayNumber = number.replace(/(\d{4})(?=\d)/g, "$1 ");
-  const month = value("expiration_month").padStart(2, "0");
-  const year = value("expiration_year");
-  const cvc = value("cvc");
-
-  return (
-    <div className="relative isolate max-w-xl overflow-hidden rounded-2xl border border-accent/25 bg-gradient-to-br from-[#1a3031] via-surface-raised to-screen p-4 shadow-2xl sm:p-5">
-      <div
-        aria-hidden
-        className="absolute -top-24 -right-20 -z-10 h-64 w-64 rounded-full bg-accent/10 blur-3xl"
-      />
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-semibold tracking-[0.18em] text-accent uppercase">
-            Single-use card
-          </p>
-          <p className="mt-1 text-xs text-ink-500">Agentic payment credential</p>
-        </div>
-        <span className="font-mono text-sm font-semibold text-accent">bt/</span>
-      </div>
-
-      <div className="mt-8">
-        <p className="mb-1.5 text-[10px] tracking-wide text-ink-500 uppercase">Card number</p>
-        <CopyChip
-          value={number}
-          label={displayNumber}
-          className="w-full justify-between border-white/10 bg-black/20 px-3 py-2 text-base tracking-[0.08em] text-ink-950 sm:text-lg"
-        />
-      </div>
-
-      <div className="mt-5 grid max-w-sm grid-cols-2 gap-4">
-        <div>
-          <p className="mb-1.5 text-[10px] tracking-wide text-ink-500 uppercase">Expires</p>
-          <CopyChip
-            value={`${month}/${year}`}
-            className="border-white/10 bg-black/20 text-ink-900"
-          />
-        </div>
-        <div>
-          <p className="mb-1.5 text-[10px] tracking-wide text-ink-500 uppercase">CVC</p>
-          <CopyChip value={cvc} className="border-white/10 bg-black/20 text-ink-900" />
-        </div>
-      </div>
-    </div>
   );
 }
 

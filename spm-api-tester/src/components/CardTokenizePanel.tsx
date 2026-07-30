@@ -18,7 +18,7 @@
 import { useMemo, useRef, useState } from "react";
 import { CardElement, useBasisTheory } from "@basis-theory/react-elements";
 import type { ICardElement } from "@basis-theory/react-elements";
-import { CARD_SCENARIOS, DEFAULT_SCENARIO_NOTE, type CardScenario } from "@/lib/scenarios";
+import { CARD_SCENARIOS, type CardScenario } from "@/lib/scenarios";
 import { useApiLog } from "@/lib/apiLog";
 import { useSession } from "@/lib/session";
 import { useToast } from "@/lib/toast";
@@ -34,12 +34,12 @@ const MOCK_CVC = "123";
 // cross-origin Elements iframe that cannot read this page's variables. The
 // values mirror the customer-portal foreground / muted / danger colors.
 const ELEMENT_BASE_STYLE = {
-  fontSize: "16px",
-  lineHeight: "24px",
+  fontSize: "14px",
+  lineHeight: "20px",
   color: "#e4e4e7",
   backgroundColor: "#17171a",
   fontFamily: "Inter, system-ui, sans-serif",
-  padding: "11px 12px",
+  padding: "8px 10px",
   "::placeholder": { color: "#717179" },
   ":read-only": {
     color: "#e4e4e7",
@@ -216,11 +216,11 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
   const canSubmit = !!bt && (tab === "mock" ? !!selected : complete) && !loading;
 
   return (
-    <div className="surface-shadow overflow-hidden rounded-xl border border-ink-200 bg-surface">
+    <div className="overflow-hidden rounded-lg border border-ink-200 bg-surface">
       <div
         role="tablist"
         aria-label="Card source"
-        className="flex gap-1 border-b border-ink-200 bg-ink-50 px-3 pt-2"
+        className="flex gap-1 border-b border-ink-200 bg-ink-50 px-2.5 pt-1.5"
       >
         {(
           [
@@ -236,7 +236,7 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
               setTab(id);
               setComplete(false);
             }}
-            className={`rounded-b-none px-4 py-3 text-sm font-semibold transition-colors ${
+            className={`rounded-b-none px-2.5 py-1.5 text-xs font-semibold transition-colors ${
               tab === id
                 ? "border-b-2 border-accent bg-surface text-accent"
                 : "text-ink-500 hover:bg-surface/60 hover:text-ink-900"
@@ -247,24 +247,22 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
         ))}
       </div>
 
-      <div className="space-y-4 p-4 sm:p-5">
+      <div className="space-y-2.5 p-2.5">
         {tab === "mock" && isProduction && (
           <Callout tone="warning" title="Production tenant">
-            These PANs only trigger scenarios on test tenants. On this tenant they are treated as
-            real card numbers — verification challenges go to real cardholders. Use “Your Card”
-            unless you know what you are doing.
+            Mock PANs are only safe on test tenants. Use “Your Card” here.
           </Callout>
         )}
 
         {tab === "mock" && (
           <>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-1.5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
               {CARD_SCENARIOS.map((scenario) => (
                 <button
                   key={scenario.pan}
                   onClick={() => setSelected(scenario)}
                   aria-pressed={selected?.pan === scenario.pan}
-                  className={`rounded-xl border p-3.5 text-left text-sm transition-colors ${
+                  className={`rounded-lg border p-2 text-left transition-colors ${
                     selected?.pan === scenario.pan
                       ? "border-accent/60 bg-accent-soft"
                       : "border-ink-200 bg-ink-50/50 hover:border-ink-300 hover:bg-ink-50"
@@ -282,26 +280,30 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
                     >
                       {scenario.badge}
                     </span>
-                    <span className="text-[11px] tracking-wide text-ink-400 uppercase">
+                    <span className="text-[10px] tracking-wide text-ink-400 uppercase">
                       {scenario.brand}
                     </span>
                   </div>
-                  <div className="mt-2 font-mono text-sm font-semibold text-ink-950">
+                  <div className="mt-1.5 font-mono text-xs font-semibold text-ink-950">
                     {scenario.pan.replace(/(\d{4})/g, "$1 ").trim()}
                   </div>
-                  <div className="mt-1.5 leading-relaxed text-ink-600">{scenario.description}</div>
                 </button>
               ))}
             </div>
-            <p className="text-xs text-ink-500">{DEFAULT_SCENARIO_NOTE}</p>
+            {selected && (
+              <p className="text-xs text-ink-500">
+                <span className="font-medium text-ink-800">{selected.badge}:</span>{" "}
+                {selected.description}
+              </p>
+            )}
           </>
         )}
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium tracking-wide text-ink-500 uppercase">
+          <label className="mb-1 block text-[10px] font-medium tracking-wide text-ink-500 uppercase">
             Card
           </label>
-          <div className="flex min-h-14 items-center overflow-hidden rounded-xl border border-ink-300 bg-surface-raised p-1 transition-colors focus-within:border-accent [&>*]:w-full">
+          <div className="flex min-h-10 items-center overflow-hidden rounded-lg border border-ink-300 bg-surface-raised p-0.5 transition-colors focus-within:border-accent [&>*]:w-full">
             {!bt ? (
               <p className="px-3 py-2 text-sm text-ink-500">Loading secure card field…</p>
             ) : tab === "mock" && selected && mockValue ? (
@@ -336,24 +338,22 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
 
         {tab === "yours" && (
           <Callout>
-            This form is a Basis Theory Elements component: the card data goes from the browser
-            directly to the vault with the public key. It never touches this app’s server — for this
-            path, that claim is literally true.
+            Elements sends card data browser → vault with the public key; it never reaches this
+            server.
           </Callout>
         )}
 
         {usedRawFallback && (
           <Callout tone="warning">
-            Elements could not tokenize the programmatic prefill in this browser, so this mock PAN
-            was tokenized with a raw browser <code>POST /tokens</code> instead (public key, still
-            browser → vault). Real cards always use Elements.
+            The mock prefill used a browser <code>POST /tokens</code> fallback. Real cards always
+            use Elements.
           </Callout>
         )}
 
         {error && (
           <div
             role="alert"
-            className="rounded-lg border border-error-border bg-error-soft p-3 text-xs text-error"
+            className="rounded-lg border border-error-border bg-error-soft p-2.5 text-xs text-error"
           >
             {error}
           </div>

@@ -354,33 +354,19 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <AllowanceSummary allowance={allowance} />
       <ScenarioChip scenarioPan={scenarioPan} stage="credentials" />
 
       {revealed.length > 0 && (
-        <section
-          aria-labelledby="created-credentials-heading"
-          className="space-y-3 rounded-2xl border border-accent/25 bg-accent-soft/20 p-4"
-        >
-          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-accent/20 pb-3">
-            <div>
-              <p className="text-[10px] font-semibold tracking-[0.16em] text-accent uppercase">
-                One-time output
-              </p>
-              <h3 id="created-credentials-heading" className="mt-1 text-base font-semibold">
-                Created credentials
-              </h3>
-              <p className="mt-1 text-xs leading-relaxed text-ink-500">
-                Spendable values returned in this browser session. The newest credential stays open
-                until you collapse it.
-              </p>
-            </div>
-            <span className="rounded-md border border-accent/30 bg-surface px-2.5 py-1 text-xs font-medium text-accent">
-              {revealed.length} {revealed.length === 1 ? "credential" : "credentials"}
-            </span>
+        <section aria-labelledby="created-credentials-heading" className="space-y-2">
+          <div className="flex items-center justify-between gap-3 border-b border-accent/20 pb-2">
+            <h3 id="created-credentials-heading" className="text-sm font-medium text-accent">
+              Created credentials
+            </h3>
+            <span className="text-xs text-ink-500">{revealed.length}</span>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {revealed.map((credential, index) => (
               <CredentialRevealCard
                 key={credential.id}
@@ -392,21 +378,11 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
         </section>
       )}
 
-      <section
-        aria-labelledby="credential-requests-heading"
-        className="space-y-3 rounded-2xl border border-ink-200 bg-ink-50/25 p-4"
-      >
-        <div className="border-b border-ink-200 pb-3">
-          <p className="text-[10px] font-semibold tracking-[0.16em] text-ink-500 uppercase">
-            Actions
-          </p>
-          <h3 id="credential-requests-heading" className="mt-1 text-base font-semibold">
-            Requests you can send
+      <section aria-labelledby="credential-requests-heading" className="space-y-2">
+        <div className="border-b border-ink-200 pb-2">
+          <h3 id="credential-requests-heading" className="text-sm font-medium">
+            Mint a credential
           </h3>
-          <p className="mt-1 text-xs leading-relaxed text-ink-500">
-            Choose a supported format, review its request body, and send it to create a new
-            credential.
-          </p>
         </div>
 
         {mints.length === 0 && (
@@ -416,20 +392,17 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
           </Callout>
         )}
 
-        <div className="space-y-3">
-          {mints.map((mint, index) => (
+        <div className="space-y-2">
+          {mints.map((mint) => (
             <details
               key={mint.key}
-              className="group overflow-hidden rounded-xl border border-ink-200 bg-surface"
-              open={index === 0}
+              className="group overflow-hidden rounded-lg border border-ink-200 bg-surface"
             >
-              <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink-900 transition-colors hover:bg-ink-50">
+              <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-ink-900 transition-colors hover:bg-ink-50">
                 {mint.title}
-                <span className="mt-1 block text-xs font-normal leading-relaxed text-ink-500">
-                  {mint.blurb}
-                </span>
               </summary>
-              <div className="border-t border-ink-200 bg-screen/20 p-3">
+              <div className="space-y-2 border-t border-ink-200 bg-screen/20 p-2.5">
+                <p className="text-xs text-ink-500">{mint.blurb}</p>
                 <RequestPanel
                   method="POST"
                   path={`/allowances/${allowance.id}/credentials`}
@@ -457,14 +430,10 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
 
           {demos.length > 0 && (
             <details className="overflow-hidden rounded-xl border border-ink-200 bg-surface">
-              <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink-900 transition-colors hover:bg-ink-50">
+              <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-ink-900 transition-colors hover:bg-ink-50">
                 Error demos — fail on purpose
-                <span className="mt-1 block text-xs font-normal leading-relaxed text-ink-500">
-                  Pre-built bodies that exercise the mint error paths. Each failure renders the full
-                  RFC 7807 problem in a toast and inline.
-                </span>
               </summary>
-              <div className="space-y-3 border-t border-ink-200 bg-screen/20 p-3">
+              <div className="space-y-2.5 border-t border-ink-200 bg-screen/20 p-2.5">
                 {demos.map((demo) => (
                   <div key={demo.key}>
                     <h4 className="mb-1 text-xs font-medium text-ink-900">{demo.title}</h4>
@@ -487,32 +456,26 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
           )}
         </div>
 
-        <Callout tone="warning" title="Unknown mint outcomes are terminal">
-          <code>CREDENTIAL_OUTCOME_UNKNOWN</code> commits the attempted amount to{" "}
-          <code>amount_spent</code>. Reusing that idempotency key only replays the same terminal
-          error; it cannot recover or re-mint. There is no credential reconcile or release endpoint,
-          and the spendable payload cannot be recovered. A new key starts a distinct mint attempt
-          and may spend again.
-        </Callout>
+        <details className="rounded-lg border border-warning-border bg-warning-soft px-3 py-2 text-xs">
+          <summary className="cursor-pointer font-medium text-warning">
+            Unknown outcome semantics
+          </summary>
+          <p className="mt-2 text-ink-700">
+            <code>CREDENTIAL_OUTCOME_UNKNOWN</code> commits <code>amount_spent</code>. The original
+            idempotency key only replays that terminal error; there is no reconcile or release
+            endpoint.
+          </p>
+        </details>
       </section>
 
-      <section
-        aria-labelledby="credential-records-heading"
-        className="space-y-3 rounded-2xl border border-ink-200 bg-surface p-4"
-      >
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-semibold tracking-[0.16em] text-ink-500 uppercase">
-              Read-only
-            </p>
-            <h3 id="credential-records-heading" className="mt-1 text-base font-semibold">
-              Credential records
-            </h3>
-            <p className="mt-1 text-xs leading-relaxed text-ink-500">
-              Retrieve IDs, formats, amounts, and statuses. Spendable values are never returned
-              again.
-            </p>
-          </div>
+      <details className="rounded-lg border border-ink-200 bg-surface">
+        <summary
+          id="credential-records-heading"
+          className="cursor-pointer px-3 py-2 text-xs font-medium"
+        >
+          Credential records (metadata only)
+        </summary>
+        <div className="space-y-2 border-t border-ink-200 p-3">
           <Button
             variant="ghost"
             small
@@ -534,94 +497,87 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
           >
             List metadata
           </Button>
+          {listed && (
+            <div className="rounded-lg border border-ink-200 bg-ink-50/35 p-2.5 text-xs">
+              {listed.length === 0 ? (
+                <p className="text-ink-500">No credentials minted yet.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {listed.map((item) => (
+                    <li key={String(item.id)} className="flex flex-wrap items-center gap-2">
+                      <CopyChip value={String(item.id)} />
+                      <span className="font-mono text-xs text-ink-600">
+                        {String(item.format)} · {String((item.amount as { value?: string })?.value)}{" "}
+                        {String((item.amount as { currency?: string })?.currency)} ·{" "}
+                        {String(item.status)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        small
+                        onClick={() =>
+                          callAgentic(
+                            {
+                              method: "GET",
+                              path: `/allowances/${allowance.id}/credentials/${String(item.id)}`,
+                              auth: "proxy",
+                            },
+                            logger,
+                          ).catch(() => {})
+                        }
+                      >
+                        GET
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
-        {listed && (
-          <div className="rounded-xl border border-ink-200 bg-ink-50/35 p-4 text-xs">
-            {listed.length === 0 ? (
-              <p className="text-ink-500">No credentials minted on this allowance yet.</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {listed.map((item) => (
-                  <li key={String(item.id)} className="flex flex-wrap items-center gap-2">
-                    <CopyChip value={String(item.id)} />
-                    <span className="font-mono text-xs text-ink-600">
-                      {String(item.format)} · {String((item.amount as { value?: string })?.value)}{" "}
-                      {String((item.amount as { currency?: string })?.currency)} ·{" "}
-                      {String(item.status)}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      small
-                      onClick={() =>
-                        callAgentic(
-                          {
-                            method: "GET",
-                            path: `/allowances/${allowance.id}/credentials/${String(item.id)}`,
-                            auth: "proxy",
-                          },
-                          logger,
-                        ).catch(() => {})
-                      }
-                    >
-                      GET
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </section>
+      </details>
     </div>
   );
 }
 
 export function AllowanceSummary({ allowance }: { allowance: Allowance }) {
   return (
-    <div className="surface-shadow overflow-hidden rounded-xl border border-ink-200 bg-surface">
-      <div className="grid gap-4 border-b border-ink-200 bg-ink-50/45 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-        <div className="min-w-0">
-          <p className="mb-1.5 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
-            Allowance ID
-          </p>
-          <CopyChip value={allowance.id} />
-        </div>
-        <div className="sm:text-right">
-          <p className="mb-1.5 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
-            Status
-          </p>
+    <div className="space-y-2 rounded-lg border border-ink-200 bg-surface p-2.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[10px] font-medium tracking-wide text-ink-500 uppercase">
+          Allowance
+        </span>
+        <CopyChip value={allowance.id} />
+        <span className="ml-auto">
           <StatusPill status={allowance.status ?? "unknown"} />
-        </div>
+        </span>
       </div>
 
-      <div className="space-y-4 p-4">
-        <div>
-          <p className="mb-2 text-[11px] font-medium tracking-wide text-ink-500 uppercase">
-            Balance
-          </p>
-          <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-            {(
-              [
-                ["amount", allowance.amount],
-                ["spent", allowance.amount_spent],
-                ["reserved", allowance.amount_reserved],
-                ["available", allowance.amount_available],
-              ] as const
-            ).map(([label, money]) => (
-              <div key={label} className="rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5">
-                <dt className="text-[11px] tracking-wide text-ink-500 uppercase">{label}</dt>
-                <dd className="mt-0.5 font-mono text-sm text-ink-950">
-                  {money?.value ?? "—"} {money?.currency ?? ""}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-        <div>
-          <p className="mb-2 text-[11px] font-medium tracking-wide text-ink-500 uppercase">Rails</p>
+      <dl className="grid grid-cols-2 divide-x divide-y divide-ink-200 overflow-hidden rounded-md border border-ink-200 text-xs sm:grid-cols-4 sm:divide-y-0">
+        {(
+          [
+            ["amount", allowance.amount],
+            ["spent", allowance.amount_spent],
+            ["reserved", allowance.amount_reserved],
+            ["available", allowance.amount_available],
+          ] as const
+        ).map(([label, money]) => (
+          <div key={label} className="flex items-baseline justify-between gap-2 px-2 py-1.5">
+            <dt className="text-[9px] tracking-wide text-ink-500 uppercase">{label}</dt>
+            <dd className="font-mono text-[11px] text-ink-950">
+              {money?.value ?? "—"} {money?.currency ?? ""}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      {(allowance.rails?.length ?? 0) > 0 && (
+        <div className="flex flex-wrap items-start gap-2">
+          <span className="pt-1 text-[10px] font-medium tracking-wide text-ink-500 uppercase">
+            Rails
+          </span>
           <RailChips rails={allowance.rails} />
         </div>
-      </div>
+      )}
     </div>
   );
 }

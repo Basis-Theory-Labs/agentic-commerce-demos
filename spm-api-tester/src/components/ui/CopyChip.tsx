@@ -39,7 +39,7 @@ export function CopyChip({
       type="button"
       onClick={copy}
       title={`Copy ${value}`}
-      className={`inline-flex max-w-full items-center gap-1.5 rounded-md border border-ink-200 bg-ink-50 px-2 py-1 font-mono text-xs text-ink-800 transition-colors hover:border-accent/50 hover:text-ink-950 ${className}`}
+      className={`inline-flex max-w-full items-center gap-1 rounded-md border border-ink-200 bg-ink-50 px-1.5 py-0.5 font-mono text-xs text-ink-800 transition-colors hover:border-accent/50 hover:text-ink-950 ${className}`}
     >
       <span className="truncate">{copied ? "Copied" : (label ?? value)}</span>
       <svg

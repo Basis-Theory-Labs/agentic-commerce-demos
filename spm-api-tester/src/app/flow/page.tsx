@@ -92,7 +92,7 @@ function Flow() {
 
   return (
     <main className="min-w-0 pb-24">
-      <div className="sticky top-0 z-30 border-b border-ink-200 bg-screen/95 backdrop-blur-xl md:top-18">
+      <div className="sticky top-0 z-30 border-b border-ink-200 bg-screen/95 backdrop-blur-xl md:top-12">
         <Stepper
           steps={STEPS}
           currentId={step}
@@ -102,12 +102,11 @@ function Flow() {
         />
       </div>
 
-      <div className="mx-auto max-w-[1180px] px-5 py-7 sm:px-8 sm:py-9 lg:px-10">
+      <div className="mx-auto max-w-[1180px] px-4 py-5 sm:px-6 sm:py-6">
         {step === "card" && (
           <StepShell
-            eyebrow="Step 1 · Card"
             title="Start with a Card"
-            lead="Everything begins with a vaulted card token. Pick a mock card (each drives a different scenario) or tokenize a real one with Elements."
+            lead="Tokenize a mock scenario or enter a card with Elements."
             onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
           >
             <CardTokenizePanel
@@ -120,9 +119,8 @@ function Flow() {
 
         {step === "payment-method" && (
           <StepShell
-            eyebrow="Step 2 · Payment Method"
             title="Create the Payment Method"
-            lead="Registering the token for agentic use provisions rails in parallel — the ways this card can pay. Each rail reports enabled, pending, or error independently."
+            lead="Create the payment method and inspect each provisioned rail."
             onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
           >
             <PaymentMethodStep
@@ -138,9 +136,8 @@ function Flow() {
 
         {step === "allowance" && (
           <StepShell
-            eyebrow="Step 3 · Allowance"
             title="Grant an Allowance"
-            lead="The allowance is the mandate: how much, at which merchant, until when. Issued credentials and unknown mint outcomes draw from it; conclusive mint failures release their reservation."
+            lead="Set the merchant, spend limit, and expiry."
             onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
           >
             <AllowanceStep
@@ -158,9 +155,8 @@ function Flow() {
 
         {step === "verify" && (
           <StepShell
-            eyebrow="Step 4 · Verification"
             title="Verify the Agentic Token Rail"
-            lead="Card networks require cardholder verification before this rail releases credentials. Run it step by step against the raw API, or with the SDK."
+            lead="Complete network verification with the raw API or SDK."
             onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
           >
             {alwEntry ? (
@@ -178,7 +174,7 @@ function Flow() {
               />
             )}
             {alwEntry && (!agenticRail || agenticRail.status === "active") && (
-              <div className="mt-5">
+              <div className="mt-3">
                 <Button onClick={() => setParams({ step: "credentials" })}>
                   Continue → Credentials
                 </Button>
@@ -189,9 +185,8 @@ function Flow() {
 
         {step === "credentials" && (
           <StepShell
-            eyebrow="Step 5 · Credentials"
             title="Mint Credentials"
-            lead="Each issued credential—and any unknown provider outcome—draws from the allowance; conclusive failures release their reservation. Add an idempotency key when you want retry semantics; credential values are returned exactly once."
+            lead="Mint a supported credential. Spendable values are revealed once."
             onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
           >
             {alwEntry ? (
@@ -212,13 +207,11 @@ function Flow() {
 }
 
 function StepShell({
-  eyebrow,
   title,
   lead,
   onRestart,
   children,
 }: {
-  eyebrow: string;
   title: string;
   lead: string;
   onRestart: () => void;
@@ -226,25 +219,18 @@ function StepShell({
 }) {
   return (
     <section aria-label={title}>
-      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:gap-5">
+      <div className="mb-3 flex flex-col items-start justify-between gap-2 sm:flex-row">
         <div className="min-w-0 max-w-3xl">
-          <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-accent uppercase">
-            {eyebrow}
-          </p>
-          <h1
-            id="step-heading"
-            tabIndex={-1}
-            className="text-3xl font-semibold outline-none sm:text-4xl"
-          >
+          <h1 id="step-heading" tabIndex={-1} className="text-xl font-medium outline-none">
             {title}
           </h1>
-          <p className="mt-2.5 max-w-3xl text-base leading-relaxed text-ink-600">{lead}</p>
+          <p className="mt-1 max-w-3xl text-sm text-ink-600">{lead}</p>
         </div>
         <Button variant="ghost" small className="shrink-0" onClick={onRestart}>
           Start over
         </Button>
       </div>
-      <div className="space-y-4">{children}</div>
+      <div className="space-y-3">{children}</div>
     </section>
   );
 }
@@ -261,7 +247,7 @@ function MissingResource({
   onImported: (id: string) => void;
 }) {
   return (
-    <div className="surface-shadow space-y-3 rounded-xl border border-ink-200 bg-surface p-5">
+    <div className="space-y-2 rounded-xl border border-ink-200 bg-surface p-3">
       <p className="text-sm text-ink-600">{label}</p>
       <ImportPanel
         key={`${kind}:${initialValue ?? ""}`}

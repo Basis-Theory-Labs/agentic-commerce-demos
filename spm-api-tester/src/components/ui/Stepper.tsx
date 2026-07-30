@@ -1,7 +1,6 @@
 "use client";
 
-// Wizard stepper: roomy, horizontally scrollable stages with done-checks and
-// an explicit "step n of m" affordance.
+// Compact, horizontally scrollable wizard stages with done-checks.
 export interface StepDef {
   id: string;
   title: string;
@@ -24,8 +23,8 @@ export function Stepper({
   const currentIndex = steps.findIndex((s) => s.id === currentId);
   return (
     <nav aria-label="Flow steps" className="bg-surface/95">
-      <div className="flex items-center gap-4 px-5 sm:px-8">
-        <ol className="flex min-w-0 flex-1 overflow-x-auto py-2">
+      <div className="flex items-center gap-3 px-4 sm:px-6">
+        <ol className="flex min-w-0 flex-1 overflow-x-auto py-1">
           {steps.map((step, index) => {
             const isCurrent = step.id === currentId;
             const isDone = doneIds.has(step.id);
@@ -37,7 +36,7 @@ export function Stepper({
                   onClick={() => isReachable && onSelect(step.id)}
                   disabled={!isReachable}
                   aria-current={isCurrent ? "step" : undefined}
-                  className={`flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                     isCurrent
                       ? "bg-accent-soft text-accent"
                       : isReachable
@@ -47,7 +46,7 @@ export function Stepper({
                 >
                   <span
                     aria-hidden
-                    className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-semibold ${
+                    className={`flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-semibold ${
                       isCurrent
                         ? "bg-accent text-accent-foreground"
                         : isDone
