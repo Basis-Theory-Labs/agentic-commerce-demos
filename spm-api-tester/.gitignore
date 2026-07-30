@@ -1,0 +1,12 @@
+# The repo-root .gitignore roots its patterns (/node_modules, /.next/), so they
+# do not cover this subdirectory — these local ignores are load-bearing.
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# env files (real keys live here; .env.example is the committed template)
+.env*
+!.env.example
