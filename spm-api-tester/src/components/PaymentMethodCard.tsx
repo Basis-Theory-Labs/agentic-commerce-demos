@@ -155,7 +155,8 @@ export function PaymentMethodCard({
             <ul className="space-y-1.5">
               {errors.map((error, index) => (
                 <li key={index} className="font-mono text-[11px] text-ink-700">
-                  {String(error.type ?? "?")} · {String(error.detail ?? error.title ?? "")}
+                  {String(error.code ?? "?")} ({String(error.provider ?? "")}) ·{" "}
+                  {String(error.detail ?? error.title ?? "")}
                 </li>
               ))}
             </ul>
