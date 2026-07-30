@@ -13,9 +13,21 @@ Each demo is a stand-alone app (its own `package.json`, its own
 
 | Demo | What it shows |
 |---|---|
-| [`travel-agent/`](./travel-agent) | A chat assistant that searches flights, issues a single-use virtual card, and "books" the flight on a simulated airline checkout. Full new-card flow (tokenize → enroll → verify → instruction → verify → credentials) plus a saved-card fast path. Every API call is rendered live in a hideable "Behind the calls" panel. |
+| [`spm-api-tester/`](./spm-api-tester) | **Current SPM reference.** A customer-ready, editable walkthrough of payment methods, allowances, Visa/Mastercard verification, rail retry, and every credential format. |
+| [`travel-agent/`](./travel-agent) | **Legacy API demo.** A travel assistant using agents, enrollments, and instructions. Retained for compatibility and regression testing. |
 
-## What is "agentic commerce"?
+## Current model: Shared Payment Model
+
+New integrations should use the Shared Payment Model:
+
+- **Payment methods** tokenize a funding source and provision independent rails.
+- **Allowances** capture user-authorized merchant, amount, and expiry constraints.
+- **Verification** advances explicit network ceremonies.
+- **Credentials** mint an explicit output format for one spend.
+
+Start with [`spm-api-tester/`](./spm-api-tester).
+
+## Legacy model
 
 In agentic commerce, the buyer is no longer the cardholder — it's an
 **agent** acting on their behalf. The cardholder enrolls a card once
@@ -25,7 +37,7 @@ specific merchant and amount. The cardholder approves the spend via
 passkey. The merchant sees a normal card transaction; the cardholder
 never exposes the underlying card.
 
-Basis Theory provides the primitives:
+The travel-agent demo uses the original compatibility resources:
 
 - **Tokens** — PCI-safe card storage via [Elements](https://developers.basistheory.com/docs/sdks/web/web-elements).
 - **Agents** — long-lived identities that hold enrollment + spending capability.
@@ -33,7 +45,7 @@ Basis Theory provides the primitives:
 - **Instructions** — describe a specific intended purchase (merchant, amount, expiry).
 - **Credentials** — short-lived single-use card numbers minted for one instruction.
 
-See [developers.basistheory.com](https://developers.basistheory.com/) for the full reference.
+Do not use these resources as the starting point for a new integration.
 
 ## Prerequisites
 
@@ -61,11 +73,12 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open the URL the dev server prints. Every demo includes a **Behind the
-calls** panel that shows you which Basis Theory API calls fire at each
-step, with the request and response bodies inlined — useful as a
-walk-through and as a copy-paste reference when you wire the same flow
-into your own app.
+Open the URL the dev server prints. Every demo includes an API call
+inspector — the **Inspector** in the SPM tester, the **Behind the
+calls** panel in travel-agent — that shows you which Basis Theory API
+calls fire at each step, with the request and response bodies inlined —
+useful as a walk-through and as a copy-paste reference when you wire
+the same flow into your own app.
 
 ## Test cards
 
@@ -74,7 +87,11 @@ Use any of the Basis Theory test cards in the test environment:
 | Brand      | Number               |
 |------------|----------------------|
 | Visa       | `4242 4242 4242 4242` |
-| Mastercard | `5200 0000 0000 1005` |
+| Mastercard | `5555 5555 5555 4444` |
+
+The SPM tester covers seven additional scenario cards — invalid OTP, rail
+rejections, retry-succeeds, credential failure, and unknown-outcome. See its
+[complete scenario matrix](./spm-api-tester#test-scenarios).
 
 Pair them with any future expiry and any 3-digit CVC.
 
