@@ -10,6 +10,7 @@ import type { Allowance, Credential } from "@/lib/types";
 import { callAgentic } from "@/lib/agenticClient";
 import { useApiLog } from "@/lib/apiLog";
 import { useSession, type AllowanceEntry } from "@/lib/session";
+import { useToast } from "@/lib/toast";
 import { base64UrlJson, EXAMPLE_MPP_CARD_ENCRYPTION_JWK } from "@/lib/mpp";
 import { RequestPanel } from "@/components/RequestPanel";
 import { ScenarioChip } from "@/components/ScenarioChip";
@@ -27,7 +28,7 @@ interface MintDef {
   body: unknown;
 }
 
-function mintsFor(allowance: Allowance): MintDef[] {
+function mintsFor(allowance: Allowance, challengeExpires: string): MintDef[] {
   const currency = allowance.amount?.currency ?? "USD";
   const agentic = allowance.rails?.find((r) => r.rail === "agentic-token");
   const spt = allowance.rails?.find((r) => r.rail === "spt");
@@ -67,7 +68,7 @@ function mintsFor(allowance: Allowance): MintDef[] {
         key: "agentic-mpp",
         title: `${provider === "vic" ? "Visa" : "Mastercard"} MPP Card Credential`,
         blurb:
-          "A complete Machine Payments Protocol credential (method card) for an HTTP `Authorization: Payment` header.",
+          "A complete Machine Payments Protocol credential (method card) for an HTTP Authorization: Payment header.",
         body: {
           rail: "agentic-token",
           provider,
@@ -91,7 +92,7 @@ function mintsFor(allowance: Allowance): MintDef[] {
                   },
                 }),
                 description: "Acme checkout",
-                expires: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+                expires: challengeExpires,
               },
               billing_address: {
                 line1: "123 Main St",
@@ -129,7 +130,7 @@ function mintsFor(allowance: Allowance): MintDef[] {
         key: "spt-mpp",
         title: "Stripe MPP Authorization Credential",
         blurb:
-          "An MPP credential wrapping the SPT (method stripe) for `Authorization: Payment` headers.",
+          "An MPP credential wrapping the SPT (method stripe) for Authorization: Payment headers.",
         body: {
           rail: "spt",
           provider: "stripe",
@@ -151,7 +152,7 @@ function mintsFor(allowance: Allowance): MintDef[] {
                   },
                 }),
                 description: "Acme checkout",
-                expires: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+                expires: challengeExpires,
               },
             },
           },
@@ -163,7 +164,7 @@ function mintsFor(allowance: Allowance): MintDef[] {
   return mints;
 }
 
-function errorDemosFor(allowance: Allowance): MintDef[] {
+function errorDemosFor(allowance: Allowance, challengeExpires: string): MintDef[] {
   const currency = allowance.amount?.currency ?? "USD";
   const agentic = allowance.rails?.find((r) => r.rail === "agentic-token");
   const spt = allowance.rails?.find((r) => r.rail === "spt");
@@ -219,14 +220,14 @@ function errorDemosFor(allowance: Allowance): MintDef[] {
         methodDetails,
       }),
       description: "Acme checkout",
-      expires: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      expires: challengeExpires,
     });
     demos.push(
       {
         key: "demo-mpp-billing",
         title: "MPP: billingRequired without billing_address → 400",
         blurb:
-          "The card challenge demands a billing address, but the payload omits it — watch the per-field errors{} in the toast.",
+          "The card challenge demands a billing address, but the payload omits it — watch the per-field errors in the toast.",
         body: {
           rail: "agentic-token",
           provider,
@@ -274,6 +275,7 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
   const allowance = entry.resource;
   const { dispatch } = useSession();
   const logger = useApiLog();
+  const toast = useToast();
   const [revealed, setRevealed] = useState<Credential[]>([]);
   const [listing, setListing] = useState(false);
   const [listed, setListed] = useState<Record<string, unknown>[] | null>(null);
@@ -306,9 +308,18 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
     await refreshAllowance();
   };
 
-  // Memoized so editable defaults (challenge expiries) don't churn per render.
-  const mints = useMemo(() => mintsFor(allowance), [allowance]);
-  const demos = useMemo(() => errorDemosFor(allowance), [allowance]);
+  // The challenge expiry is fixed once per mount so mint bodies stay
+  // byte-identical across re-renders — replaying a key with the SAME body is
+  // the demo, and a drifting expires would turn it into IDEMPOTENCY_CONFLICT.
+  const [challengeExpires] = useState(() => new Date(Date.now() + 30 * 60 * 1000).toISOString());
+  const mints = useMemo(
+    () => mintsFor(allowance, challengeExpires),
+    [allowance, challengeExpires],
+  );
+  const demos = useMemo(
+    () => errorDemosFor(allowance, challengeExpires),
+    [allowance, challengeExpires],
+  );
 
   return (
     <div className="space-y-3">
@@ -318,7 +329,8 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
       {mints.length === 0 && (
         <Callout tone="warning">
           No rail on this allowance can mint right now. The agentic-token rail must be{" "}
-          <b>active</b> (verify it first) and the spt rail must be <b>enabled</b>.
+          <b>active</b> (verify it first); an spt rail is mintable as soon as it is{" "}
+          <b>active</b>.
         </Callout>
       )}
 
@@ -339,7 +351,7 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
               auth="proxy"
               defaultBody={mint.body}
               idempotency
-              idempotencyNote="Payloads are returned exactly once. Resend with the SAME key and body → 409 CREDENTIAL_PAYLOAD_UNAVAILABLE (no re-mint). Same key, EDITED body → 409 IDEMPOTENCY_CONFLICT. Leave the key untouched and resend to see it — that replay is the teachable moment, not a bug."
+              idempotencyNote="Payloads are returned exactly once: Replay last key with the same body → 409 CREDENTIAL_PAYLOAD_UNAVAILABLE (no re-mint); replayed key with an edited body → 409 IDEMPOTENCY_CONFLICT. That replay is the teachable moment, not a bug."
               sendLabel="Mint"
               loadingLabel="Minting…"
               successToast={(result) => ({
@@ -393,8 +405,8 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
                 logger,
               );
               setListed(result.data ?? []);
-            } catch {
-              // toast handled by inspector visibility; keep quiet here
+            } catch (error) {
+              toast.error(error);
             } finally {
               setListing(false);
             }

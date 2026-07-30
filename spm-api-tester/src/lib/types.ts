@@ -17,6 +17,8 @@ export interface Rail {
   rail: RailName;
   provider?: ProviderName;
   status: RailStatus;
+  /** Present when status is "error" — sanitized failure summary. */
+  error?: { type?: string; title?: string; detail?: string; [key: string]: unknown };
 }
 
 export interface PaymentMethod {
@@ -65,10 +67,6 @@ export interface Credential {
 }
 
 /* ── verification ─────────────────────────────────────────────────────── */
-
-export type VerifyActionName = OpenString<
-  "start" | "submit_session" | "select_otp_method" | "submit_otp" | "submit_passkey" | "complete"
->;
 
 export interface VisaEmbed {
   iframe_url: string;

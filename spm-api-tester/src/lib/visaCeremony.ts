@@ -153,6 +153,9 @@ export class VisaCeremony {
     this.secureTokenValue = null;
     this.isReady = false;
     this.iframe?.remove();
+    // A stale ready timer from a previous init must not null out the new
+    // attempt's resolvers.
+    if (this.readyTimer) clearTimeout(this.readyTimer);
 
     if (!this.boundOnMessage) {
       this.boundOnMessage = (event) => this.onMessage(event);

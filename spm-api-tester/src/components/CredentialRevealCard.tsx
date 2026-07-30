@@ -18,7 +18,7 @@ function rowsFor(credential: Credential): FieldRow[] {
   if (value == null) return [];
 
   if (typeof value === "string") {
-    return [{ label: format === "identifier" ? "identifier" : format, value }];
+    return [{ label: format, value }];
   }
 
   if (typeof value === "object") {
@@ -36,9 +36,23 @@ function rowsFor(credential: Credential): FieldRow[] {
       ...preferredOrder.filter((k) => k in obj),
       ...Object.keys(obj).filter((k) => !preferredOrder.includes(k)),
     ];
-    return keys
-      .filter((k) => obj[k] != null && typeof obj[k] !== "object")
-      .map((k) => ({ label: k, value: String(obj[k]) }));
+    const rows: FieldRow[] = [];
+    for (const key of keys) {
+      const item = obj[key];
+      if (item == null) continue;
+      if (typeof item === "object") {
+        // Nested objects (the network-token `cryptogram: {type, value,
+        // expires_at}`) flatten one level — the cryptogram is the field that
+        // makes the token spendable and must never be dropped.
+        for (const [subKey, subValue] of Object.entries(item as Record<string, unknown>)) {
+          if (subValue == null || typeof subValue === "object") continue;
+          rows.push({ label: `${key} ${subKey}`, value: String(subValue) });
+        }
+      } else {
+        rows.push({ label: key, value: String(item) });
+      }
+    }
+    return rows;
   }
 
   return [{ label: format, value: String(value) }];
@@ -60,16 +74,22 @@ export function CredentialRevealCard({ credential }: { credential: Credential })
           This credential value is only shown once — it is not retrievable again. Copy what you
           need now.
         </Callout>
-        <dl className="space-y-1.5">
-          {rows.map((row) => (
-            <div key={row.label} className="flex items-center justify-between gap-3">
-              <dt className="text-[11px] tracking-wide text-ink-500 uppercase">{row.label}</dt>
-              <dd className="min-w-0">
-                <CopyChip value={row.value} />
-              </dd>
-            </div>
-          ))}
-        </dl>
+        {rows.length > 0 ? (
+          <dl className="space-y-1.5">
+            {rows.map((row) => (
+              <div key={row.label} className="flex items-center justify-between gap-3">
+                <dt className="text-[11px] tracking-wide text-ink-500 uppercase">{row.label}</dt>
+                <dd className="min-w-0">
+                  <CopyChip value={row.value} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <pre className="max-h-48 overflow-auto border border-ink-200 bg-ink-50 p-2 font-mono text-[11px]">
+            {JSON.stringify(credential.credential.value, null, 2)}
+          </pre>
+        )}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-ink-100 pt-2 text-[11px] text-ink-500">
           <span>
             {credential.amount?.value} {credential.amount?.currency}

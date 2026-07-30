@@ -68,15 +68,21 @@ export async function proxyAgentic(request: NextRequest, path: string[]) {
   }
 
   const url = `${AGENTIC_BASE.replace(/\/+$/, "")}/${path.join("/")}${request.nextUrl.search}`;
-  const rawBody =
-    request.method === "GET" || request.method === "HEAD" ? undefined : await request.text();
+  const text =
+    request.method === "GET" || request.method === "HEAD" ? "" : await request.text();
+  // Bodiless requests (DELETE in particular) must not carry a Content-Type:
+  // Fastify runs the JSON parser whenever the header is present and 500s on
+  // an empty body.
+  const rawBody = text.length > 0 ? text : undefined;
 
   const started = Date.now();
   const upstream = await fetch(url, {
     method: request.method,
     headers: {
       "BT-API-KEY": apiKey,
-      "Content-Type": request.headers.get("content-type") || "application/json",
+      ...(rawBody !== undefined
+        ? { "Content-Type": request.headers.get("content-type") || "application/json" }
+        : {}),
       ...(request.headers.get("idempotency-key")
         ? { "Idempotency-Key": request.headers.get("idempotency-key")! }
         : {}),

@@ -1,7 +1,8 @@
 "use client";
 
 // Wizard stepper: numerals with done-checks and an explicit "step n of m"
-// affordance. Visually distinct from in-page tabs (solid blocks vs underlines).
+// affordance. The current step is a solid block — deliberately distinct from
+// the underline styling in-page tabs use.
 export interface StepDef {
   id: string;
   title: string;
@@ -37,19 +38,19 @@ export function Stepper({
                   onClick={() => isReachable && onSelect(step.id)}
                   disabled={!isReachable}
                   aria-current={isCurrent ? "step" : undefined}
-                  className={`flex items-center gap-2 border-b-2 px-3 py-2.5 text-xs font-medium transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-2.5 text-xs font-medium transition-colors ${
                     isCurrent
-                      ? "border-ink-900 text-ink-950"
+                      ? "bg-ink-900 text-white"
                       : isReachable
-                        ? "border-transparent text-ink-600 hover:text-ink-900"
-                        : "border-transparent text-ink-300"
+                        ? "text-ink-600 hover:text-ink-900"
+                        : "text-ink-300"
                   } disabled:cursor-not-allowed`}
                 >
                   <span
                     aria-hidden
                     className={`flex h-5 w-5 items-center justify-center text-[10px] font-semibold ${
                       isCurrent
-                        ? "bg-ink-900 text-white"
+                        ? "bg-white text-ink-900"
                         : isDone
                           ? "bg-success text-white"
                           : "border border-ink-300 text-ink-500"

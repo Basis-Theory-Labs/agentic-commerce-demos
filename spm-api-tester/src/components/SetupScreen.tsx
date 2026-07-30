@@ -52,8 +52,10 @@ export function SetupScreen({
             </div>
             <p className="mt-1 text-xs text-ink-600">
               A <b>private</b> application key. It never leaves the Next.js server and covers
-              allowance management (<code className="bg-ink-100 px-1">agentic:allowance:*</code>)
-              and credentials (<code className="bg-ink-100 px-1">agentic:credential:*</code>).
+              payment-method management (
+              <code className="bg-ink-100 px-1">agentic:payment-method:*</code>), allowance
+              management (<code className="bg-ink-100 px-1">agentic:allowance:*</code>), and
+              credentials (<code className="bg-ink-100 px-1">agentic:credential:*</code>).
             </p>
           </li>
         </ul>

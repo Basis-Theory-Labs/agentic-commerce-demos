@@ -30,6 +30,9 @@ import { Callout } from "@/components/ui/Callout";
 const MOCK_EXPIRATION = { month: 12, year: 2030 };
 const MOCK_CVC = "123";
 
+// Hex literals, not CSS custom properties: the CardElement renders inside a
+// cross-origin Elements iframe that cannot read this page's variables. The
+// values mirror --mono-950 / --mono-400 / --error.
 const ELEMENT_STYLE = {
   base: {
     fontSize: "13px",

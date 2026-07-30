@@ -70,7 +70,6 @@ export type SessionAction =
   | { type: "upsertPaymentMethod"; entry: PaymentMethodEntry }
   | { type: "removePaymentMethod"; id: string }
   | { type: "upsertAllowance"; entry: AllowanceEntry }
-  | { type: "removeAllowance"; id: string }
   | { type: "addCredential"; entry: CredentialEntry }
   | { type: "reset" };
 
@@ -111,8 +110,6 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
         : [action.entry, ...state.allowances];
       return { ...state, allowances };
     }
-    case "removeAllowance":
-      return { ...state, allowances: state.allowances.filter((a) => a.resource.id !== action.id) };
     case "addCredential":
       if (state.credentials.some((c) => c.resource.id === action.entry.resource.id)) return state;
       return { ...state, credentials: [action.entry, ...state.credentials] };

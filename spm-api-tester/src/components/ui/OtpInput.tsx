@@ -9,25 +9,28 @@ export function OtpInput({
   length = 6,
   onComplete,
   error,
+  errorKey = 0,
   disabled = false,
 }: {
   length?: number;
   onComplete: (code: string) => void;
   error?: string | null;
+  /** Bump on every failed attempt so identical error text still clears. */
+  errorKey?: number;
   disabled?: boolean;
 }) {
   const [digits, setDigits] = useState<string[]>(() => Array(length).fill(""));
   const refs = useRef<(HTMLInputElement | null)[]>([]);
-  const lastError = useRef<string | null | undefined>(null);
+  const lastErrorKey = useRef(errorKey);
 
-  // A new error clears the boxes and returns focus to the first one.
+  // Each failed attempt clears the boxes and returns focus to the first one.
   useEffect(() => {
-    if (error && error !== lastError.current) {
+    if (error && errorKey !== lastErrorKey.current) {
       setDigits(Array(length).fill(""));
       refs.current[0]?.focus();
     }
-    lastError.current = error;
-  }, [error, length]);
+    lastErrorKey.current = errorKey;
+  }, [error, errorKey, length]);
 
   const commit = (next: string[]) => {
     setDigits(next);
@@ -62,6 +65,12 @@ export function OtpInput({
       const next = [...digits];
       next[index - 1] = "";
       setDigits(next);
+      event.preventDefault();
+    } else if (event.key === "ArrowLeft" && index > 0) {
+      refs.current[index - 1]?.focus();
+      event.preventDefault();
+    } else if (event.key === "ArrowRight" && index < length - 1) {
+      refs.current[index + 1]?.focus();
       event.preventDefault();
     }
   };

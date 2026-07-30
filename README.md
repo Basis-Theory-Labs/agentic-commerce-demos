@@ -74,7 +74,7 @@ npm run dev
 ```
 
 Open the URL the dev server prints. Every demo includes an API call
-inspector — the **Inspector** in the SPM tester, the **Behind the
+inspector — the **Inspector** in the SPM API Tester, the **Behind the
 calls** panel in travel-agent — that shows you which Basis Theory API
 calls fire at each step, with the request and response bodies inlined —
 useful as a walk-through and as a copy-paste reference when you wire
@@ -89,7 +89,7 @@ Use any of the Basis Theory test cards in the test environment:
 | Visa       | `4242 4242 4242 4242` |
 | Mastercard | `5555 5555 5555 4444` |
 
-The SPM tester covers seven additional scenario cards — invalid OTP, rail
+The SPM API Tester covers seven additional scenario cards — invalid OTP, rail
 rejections, retry-succeeds, credential failure, and unknown-outcome. See its
 [complete scenario matrix](./spm-api-tester#test-scenarios).
 

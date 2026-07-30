@@ -7,7 +7,7 @@ Model (SPM)**:
 card token → payment method → allowance → verification → credentials
 ```
 
-Every wire call is visible, editable, and copyable. Two modes (a guided
+Every wire call is visible and copyable, and every write is editable. Two modes (a guided
 five-step flow and a freeform workbench), two verification variants (raw API
 or the `@basis-theory/agentic-verification` SDK), and full coverage of the
 mock test-card scenarios.
@@ -103,24 +103,25 @@ NEXT_PUBLIC_BT_AGENTIC_API_URL=http://localhost:3001/api
   and browser back/forward works. Any step renders safely with missing state —
   you can import a pasted id instead.
 - **Workbench** (`/workbench`) — freeform, resource-oriented: unlimited
-  creates (fresh idempotency key each time), allowance PATCH / cancel / rails
+  creates (a fresh idempotency key is generated after each successful create,
+  with a one-click replay of the previous key), allowance PATCH / cancel / rails
   retry, provider-error viewers, per-credential metadata reads, and paste-an-id
   import for external resources.
 - **Manual vs SDK** — a persistent toggle. Manual walks every verify action as
-  an editable JSON request (including the `submit_session`, `submit_passkey`,
-  and `complete` bodies pre-filled from real ceremony results). SDK collapses
+  an editable JSON request, with the `submit_session` and `submit_passkey`
+  bodies pre-filled from real ceremony results. SDK collapses
   the same verification into one `verifyAllowance()` call with the SDK's own
   UI. Both operate on the same allowances — verify one each way and compare
   transcripts in the inspector.
 
 ## Test scenarios
 
-All from `src/lib/scenarios.ts` — the picker, the step reminder chips, and
-this table render from the same module.
+All from `src/lib/scenarios.ts` — the picker and the step reminder chips
+render from it, and a unit test keeps this table in sync with it.
 
 | PAN | Brand | Scenario (manifests at) |
 | --- | --- | --- |
-| `4242 4242 4242 4242` | Visa | Happy path: OTP → passkey (Verify) |
+| `4242 4242 4242 4242` | Visa | Happy path: OTP → REGISTER passkey → restart → AUTHENTICATE (Verify) |
 | `4929 9803 9556 7582` | Visa | Every `submit_otp` → 400 `INVALID_OTP` (Verify) |
 | `5555 5555 5555 4444` | Mastercard | Happy path: hosted ceremony → `complete` (Verify) |
 | `5186 1600 0000 0001` | Mastercard | agentic-token rail rejected at creation (`CARD_REJECTED`); spt still usable (Payment Method) |
@@ -177,6 +178,10 @@ src/components/MintPanel.tsx      Credential minting + error demos + reveal card
 src/components/CardTokenizePanel  Elements card collection (mock prefill + real cards)
 src/components/Inspector.tsx      The API activity panel
 src/components/ui/*               Hand-rolled primitives (toasts live in src/lib/toast.tsx)
+src/components/*                  AppShell, Providers, SetupScreen, RequestPanel, ImportPanel,
+                                  PaymentMethodCard, CredentialRevealCard, ScenarioChip
+src/lib/*                         env, config, types, variant, snippets, mpp, toast
+src/lib/*.test.ts                 The vitest suite
 ```
 
 ## Troubleshooting

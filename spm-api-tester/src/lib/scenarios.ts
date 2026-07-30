@@ -34,10 +34,10 @@ export const CARD_SCENARIOS: CardScenario[] = [
     brand: "visa",
     badge: "Happy path",
     tone: "success",
-    description: "Visa verification succeeds: OTP, then passkey ceremony.",
+    description: "Visa verification succeeds: OTP, REGISTER passkey, restart, AUTHENTICATE passkey.",
     manifestsAt: "verify",
     reminder:
-      "Happy-path Visa card: expect OTP then a passkey ceremony. Any OTP code works on test tenants.",
+      "Happy-path Visa card: OTP, a REGISTER passkey ceremony, a restart, then AUTHENTICATE. Any OTP code works on test tenants.",
   },
   {
     pan: "4929980395567582",
@@ -58,7 +58,7 @@ export const CARD_SCENARIOS: CardScenario[] = [
     description: "Mastercard verification succeeds: hosted ceremony, then complete.",
     manifestsAt: "verify",
     reminder:
-      "Happy-path Mastercard card: the hosted ceremony popup posts a completion cue, then `complete` activates the rail.",
+      "Happy-path Mastercard card: the hosted ceremony popup posts a completion cue, then the complete action activates the rail.",
   },
   {
     pan: "5186160000000001",
@@ -77,7 +77,7 @@ export const CARD_SCENARIOS: CardScenario[] = [
     brand: "mastercard",
     badge: "Complete fails",
     tone: "error",
-    description: "The Mastercard ceremony runs, but `complete` fails with 422.",
+    description: "The Mastercard ceremony runs, but the complete action fails with 422.",
     manifestsAt: "verify",
     expectedErrorType: "PROVIDER_VERIFICATION_FAILED",
     reminder:
@@ -144,7 +144,7 @@ export const DEFAULT_SCENARIO_NOTE =
 export const NOT_SIMULATABLE: string[] = [
   "MAX_ATTEMPTS_EXCEEDED — the mock accepts unlimited OTP attempts",
   "PASSKEY_FAILED — the mock passkey ceremony always succeeds",
-  "Mastercard PENDING on `complete` — the mock resolves immediately (real Mastercard can return pending; the bounded poll ships anyway)",
+  "Mastercard PENDING on complete — the mock resolves immediately (real Mastercard can return pending; the bounded poll ships anyway)",
   "An `error` allowance rail — allowance rails/retry cannot be demonstrated",
   "NO_ACTIVE_RAILS — mock allowances always provision at least one rail",
   "Visa enrollment failure at payment-method creation",

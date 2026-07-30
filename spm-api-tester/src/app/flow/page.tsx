@@ -298,7 +298,7 @@ function PaymentMethodStep({
             path="/payment-methods"
             auth="public"
             idempotency
-            idempotencyNote="Creates replay safely: resend with the same untouched key and the API returns the same payment method instead of a duplicate."
+            idempotencyNote="Creates replay safely: use Replay last key and resend — the API returns the same payment method instead of a duplicate."
             defaultBody={{
               source: { type: "basis_theory_card_token", token_id: tokenEntry.id },
               consumer: { email },
@@ -328,7 +328,7 @@ function PaymentMethodStep({
             <Button onClick={onContinue}>Continue → Allowance</Button>
           ) : (
             <Callout tone="warning">
-              No rail is enabled yet — retry a failed rail above, or start over with a different
+              No rail is enabled yet — retry a failed or pending rail above, or start over with a different
               card. An allowance needs at least one enabled rail.
             </Callout>
           )}
@@ -380,7 +380,7 @@ function AllowanceStep({
           path="/allowances"
           auth="proxy"
           idempotency
-          idempotencyNote="Creates replay safely: resend with the same untouched key and body and the API returns the same allowance instead of a duplicate."
+          idempotencyNote="Creates replay safely: use Replay last key and resend the same body — the API returns the same allowance instead of a duplicate."
           defaultBody={{
             payment_method_id: pmEntry.resource.id,
             amount: { value: "20.00", currency: "USD" },

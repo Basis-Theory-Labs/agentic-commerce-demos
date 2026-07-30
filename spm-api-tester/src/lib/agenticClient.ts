@@ -79,8 +79,11 @@ export async function callAgentic<T = unknown>(opts: AgenticCall, logger?: Logge
   const direct = opts.auth === "public";
   const url = direct ? `${AGENTIC_API_URL}${opts.path}` : `/api/agentic${opts.path}`;
 
+  // Content-Type only when a body exists: Fastify runs the JSON parser
+  // whenever the header is present, so a bodiless DELETE with
+  // `Content-Type: application/json` fails on an empty body.
   const wireHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...(opts.body !== undefined ? { "Content-Type": "application/json" } : {}),
     ...(direct ? { "BT-API-KEY": PUBLIC_KEY } : {}),
     ...(opts.idempotencyKey ? { "Idempotency-Key": opts.idempotencyKey } : {}),
   };
@@ -99,7 +102,7 @@ export async function callAgentic<T = unknown>(opts: AgenticCall, logger?: Logge
     curl: buildCurl({
       method: opts.method,
       url: direct ? url : `${AGENTIC_API_URL}${opts.path}`,
-      headers: { ...wireHeaders, ...(direct ? {} : { "BT-API-KEY": "" }) },
+      headers: { ...(direct ? wireHeaders : { ...wireHeaders, "BT-API-KEY": "" }) },
       body: opts.body,
     }),
   });
@@ -147,6 +150,18 @@ export async function callAgentic<T = unknown>(opts: AgenticCall, logger?: Logge
       url: trace?.url ?? url,
       duration_ms: trace?.duration_ms ?? duration,
       traceId,
+      // Rebuild the curl from the REAL upstream URL once the trace reveals
+      // it (the server may target a different base than the browser).
+      ...(trace
+        ? {
+            curl: buildCurl({
+              method: opts.method,
+              url: trace.url,
+              headers: wireHeaders,
+              body: opts.body,
+            }),
+          }
+        : {}),
     });
   }
 

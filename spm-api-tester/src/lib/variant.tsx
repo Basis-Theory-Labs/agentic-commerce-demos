@@ -34,7 +34,8 @@ export function setFlowVariant(next: FlowVariant): void {
   try {
     localStorage.setItem(STORAGE_KEY, next);
   } catch {
-    // Storage unavailable — the toggle still works for this page via the event.
+    // Storage unavailable — readVariant() will keep returning the default,
+    // so the toggle is inert; verification still runs in Manual mode.
   }
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }
@@ -47,16 +48,11 @@ export function useFlowVariant(): { variant: FlowVariant; setVariant: (v: FlowVa
 export function VariantToggle() {
   const { variant, setVariant } = useFlowVariant();
   return (
-    <div
-      role="radiogroup"
-      aria-label="Verification flow variant"
-      className="inline-flex border border-ink-300"
-    >
+    <div role="group" aria-label="Verification flow variant" className="inline-flex border border-ink-300">
       {(["manual", "sdk"] as const).map((option) => (
         <button
           key={option}
-          role="radio"
-          aria-checked={variant === option}
+          aria-pressed={variant === option}
           onClick={() => setVariant(option)}
           className={`px-3 py-1.5 text-xs font-medium ${
             variant === option ? "bg-ink-900 text-white" : "bg-white text-ink-600 hover:text-ink-900"

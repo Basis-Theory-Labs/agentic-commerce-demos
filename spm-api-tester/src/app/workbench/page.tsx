@@ -5,7 +5,7 @@
 // create), PATCH and cancel allowances, retry rails, mint every format, and
 // import external ids into the session registry.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { CardTokenizePanel } from "@/components/CardTokenizePanel";
 import { ImportPanel } from "@/components/ImportPanel";
@@ -208,7 +208,6 @@ function AllowancesSection() {
             path="/allowances"
             auth="proxy"
             idempotency
-            idempotencyNote="A fresh key per create — resend with the key untouched and the API replays the same allowance instead of creating a second one."
             defaultBody={{
               payment_method_id: effectivePmId,
               amount: { value: "20.00", currency: "USD" },
@@ -249,9 +248,20 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [errors, setErrors] = useState<Record<string, unknown>[] | null>(null);
-  const [retrying, setRetrying] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState<Set<string>>(new Set());
+  // A late retry response must not revert a just-cancelled allowance.
+  const cancelled = useRef(allowance.status === "cancelled");
 
   const errorRails = (allowance.rails ?? []).filter((rail) => rail.status === "error");
+
+  const setRetryingFor = (key: string, active: boolean) => {
+    setRetrying((prev) => {
+      const next = new Set(prev);
+      if (active) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+  };
 
   const cancel = async () => {
     setCancelling(true);
@@ -260,6 +270,7 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
         { method: "DELETE", path: `/allowances/${allowance.id}`, auth: "proxy" },
         logger,
       );
+      cancelled.current = true;
       dispatch({ type: "upsertAllowance", entry: { ...entry, resource: { ...allowance, status: "cancelled" } } });
       toast.success("Allowance cancelled — no new credentials can be minted from it");
     } catch (error) {
@@ -306,36 +317,42 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
       </details>
 
       <div className="flex flex-wrap items-center gap-2">
-        {errorRails.map((rail) => (
-          <Button
-            key={`${rail.rail}:${rail.provider}`}
-            variant="ghost"
-            small
-            loading={retrying === `${rail.rail}:${rail.provider}`}
-            onClick={async () => {
-              setRetrying(`${rail.rail}:${rail.provider}`);
-              try {
-                const updated = await callAgentic<Allowance>(
-                  {
-                    method: "POST",
-                    path: `/allowances/${allowance.id}/rails/retry`,
-                    body: { rail: rail.rail, provider: rail.provider },
-                    auth: "proxy",
-                    tag: "rails/retry",
-                  },
-                  logger,
-                );
-                dispatch({ type: "upsertAllowance", entry: { ...entry, resource: updated } });
-              } catch (error) {
-                toast.error(error);
-              } finally {
-                setRetrying(null);
-              }
-            }}
-          >
-            Retry {rail.rail} · {rail.provider}
-          </Button>
-        ))}
+        {errorRails.map((rail) => {
+          const key = `${rail.rail}:${rail.provider}`;
+          return (
+            <Button
+              key={key}
+              variant="ghost"
+              small
+              loading={retrying.has(key)}
+              disabled={cancelling}
+              onClick={async () => {
+                setRetryingFor(key, true);
+                try {
+                  const updated = await callAgentic<Allowance>(
+                    {
+                      method: "POST",
+                      path: `/allowances/${allowance.id}/rails/retry`,
+                      body: { rail: rail.rail, provider: rail.provider },
+                      auth: "proxy",
+                      tag: "rails/retry",
+                    },
+                    logger,
+                  );
+                  if (!cancelled.current) {
+                    dispatch({ type: "upsertAllowance", entry: { ...entry, resource: updated } });
+                  }
+                } catch (error) {
+                  toast.error(error);
+                } finally {
+                  setRetryingFor(key, false);
+                }
+              }}
+            >
+              Retry {rail.rail} · {rail.provider}
+            </Button>
+          );
+        })}
         <Button
           variant="ghost"
           small
@@ -367,7 +384,12 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
               </Button>
             </>
           ) : (
-            <Button variant="destructive" small onClick={() => setConfirmingCancel(true)}>
+            <Button
+              variant="destructive"
+              small
+              disabled={retrying.size > 0}
+              onClick={() => setConfirmingCancel(true)}
+            >
               Cancel allowance
             </Button>
           ))}

@@ -98,7 +98,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed bottom-4 left-1/2 z-50 flex w-full max-w-md -translate-x-1/2 flex-col gap-2 px-4">
+      {/* bottom-20 on narrow viewports keeps the inspector button reachable */}
+      <div className="pointer-events-none fixed bottom-20 left-1/2 z-50 flex w-full max-w-md -translate-x-1/2 flex-col gap-2 px-4 sm:bottom-4">
         {/* Two live regions so successes stay polite and errors interrupt. */}
         <div aria-live="polite" className="sr-only">
           {toasts
@@ -146,10 +147,15 @@ function Toast({
   const fieldErrors = toast.problem?.errors;
 
   return (
+    // Deliberately NOT a live region — announcements come from the dedicated
+    // sr-only regions above, so screen readers hear each toast exactly once
+    // while its buttons stay focusable. Auto-dismiss pauses on hover AND on
+    // keyboard focus within.
     <div
-      role="status"
       onMouseEnter={onPause}
       onMouseLeave={onResume}
+      onFocus={onPause}
+      onBlur={onResume}
       className={`pointer-events-auto border ${border} bg-white p-3 text-sm shadow-lg`}
     >
       <div className="flex items-start justify-between gap-3">

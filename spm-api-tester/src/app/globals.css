@@ -14,9 +14,6 @@
   --mono-900: #18181b;
   --mono-950: #0a0a0a;
 
-  --accent: var(--mono-950);
-  --accent-hover: var(--mono-800);
-
   /* Semantic status tones + soft background variants. Every status surface
      in the app derives from these — no scattered hex values. */
   --success: #15803d;
@@ -52,8 +49,6 @@
   --color-ink-100: var(--mono-100);
   --color-ink-50: var(--mono-50);
 
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-success-border: var(--success-border);

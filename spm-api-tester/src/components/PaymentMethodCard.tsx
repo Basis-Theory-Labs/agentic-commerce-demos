@@ -3,7 +3,7 @@
 // One payment method: card summary, rail chips, per-rail retry for failed
 // rails, provider-error viewer, and (workbench) delete with cascade warning.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { PaymentMethod, Rail } from "@/lib/types";
 import { callAgentic } from "@/lib/agenticClient";
 import { useApiLog } from "@/lib/apiLog";
@@ -25,18 +25,32 @@ export function PaymentMethodCard({
   const { dispatch } = useSession();
   const logger = useApiLog();
   const toast = useToast();
-  const [retrying, setRetrying] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [errors, setErrors] = useState<Record<string, unknown>[] | null>(null);
   const [loadingErrors, setLoadingErrors] = useState(false);
+  // A late retry response must not resurrect a payment method the user
+  // deleted while the retry was in flight.
+  const removed = useRef(false);
 
   const failedRails = (pm.rails ?? []).filter((rail: Rail) =>
     ["pending", "error"].includes(rail.status),
   );
 
+  const retryKey = (rail: Rail) => `${rail.rail}:${rail.provider}`;
+  const setRetryingFor = (key: string, active: boolean) => {
+    setRetrying((prev) => {
+      const next = new Set(prev);
+      if (active) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+  };
+
   const retryRail = async (rail: Rail) => {
-    setRetrying(`${rail.rail}:${rail.provider}`);
+    const key = retryKey(rail);
+    setRetryingFor(key, true);
     try {
       const updated = await callAgentic<PaymentMethod>(
         {
@@ -48,6 +62,7 @@ export function PaymentMethodCard({
         },
         logger,
       );
+      if (removed.current) return;
       dispatch({ type: "upsertPaymentMethod", entry: { ...entry, resource: updated } });
       const refreshed = updated.rails?.find(
         (r) => r.rail === rail.rail && r.provider === rail.provider,
@@ -60,7 +75,7 @@ export function PaymentMethodCard({
     } catch (error) {
       toast.error(error);
     } finally {
-      setRetrying(null);
+      setRetryingFor(key, false);
     }
   };
 
@@ -71,6 +86,7 @@ export function PaymentMethodCard({
         { method: "DELETE", path: `/payment-methods/${pm.id}`, auth: "proxy" },
         logger,
       );
+      removed.current = true;
       dispatch({ type: "removePaymentMethod", id: pm.id });
       toast.success("Payment method deleted (its allowances were cancelled with it)");
     } catch (error) {
@@ -114,11 +130,12 @@ export function PaymentMethodCard({
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {failedRails.map((rail) => (
           <Button
-            key={`${rail.rail}:${rail.provider}`}
+            key={retryKey(rail)}
             variant="ghost"
             small
-            loading={retrying === `${rail.rail}:${rail.provider}`}
+            loading={retrying.has(retryKey(rail))}
             loadingLabel="Retrying…"
+            disabled={deleting}
             onClick={() => retryRail(rail)}
           >
             Retry {rail.rail} · {rail.provider}
@@ -141,7 +158,12 @@ export function PaymentMethodCard({
               </Button>
             </>
           ) : (
-            <Button variant="destructive" small onClick={() => setConfirmingDelete(true)}>
+            <Button
+              variant="destructive"
+              small
+              disabled={retrying.size > 0}
+              onClick={() => setConfirmingDelete(true)}
+            >
               Delete
             </Button>
           ))}

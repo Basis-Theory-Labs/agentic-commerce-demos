@@ -59,6 +59,10 @@ export function RequestPanel({
   );
   const [body, setBody] = useState(defaultJson);
   const [idemKey, setIdemKey] = useState(() => crypto.randomUUID());
+  // After a successful send the key regenerates (fresh key per create) and
+  // the used key is kept so "Replay last key" can demonstrate server-side
+  // replay semantics on purpose.
+  const [lastSentKey, setLastSentKey] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [problem, setProblem] = useState<ApiProblem | null>(null);
   const logger = useApiLog();
@@ -86,6 +90,7 @@ export function RequestPanel({
     }
     setSending(true);
     onSendStateChange?.(true);
+    const usedKey = idemKey.trim();
     try {
       const result = await callAgentic(
         {
@@ -94,10 +99,14 @@ export function RequestPanel({
           body: parsed,
           auth,
           tag,
-          idempotencyKey: idempotency ? idemKey.trim() : undefined,
+          idempotencyKey: idempotency ? usedKey : undefined,
         },
         logger,
       );
+      if (idempotency) {
+        setLastSentKey(usedKey);
+        setIdemKey(crypto.randomUUID());
+      }
       const successInfo = successToast?.(result);
       if (successInfo) {
         toast.success(
@@ -169,8 +178,22 @@ export function RequestPanel({
               <Button variant="ghost" small onClick={() => setIdemKey(crypto.randomUUID())}>
                 Regenerate
               </Button>
+              {lastSentKey && (
+                <Button
+                  variant="ghost"
+                  small
+                  onClick={() => setIdemKey(lastSentKey)}
+                  title="Restore the key from the last successful send — resending then demonstrates the server's replay behavior"
+                >
+                  Replay last key
+                </Button>
+              )}
             </div>
-            {idempotencyNote && <p className="mt-1 text-[11px] text-ink-500">{idempotencyNote}</p>}
+            <p className="mt-1 text-[11px] text-ink-500">
+              A fresh key is generated after each successful send.{" "}
+              {idempotencyNote ??
+                "Use Replay last key to resend with the previous key on purpose — same body replays, edited body 409s with IDEMPOTENCY_CONFLICT."}
+            </p>
           </div>
         )}
 

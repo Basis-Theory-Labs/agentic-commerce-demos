@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApiLog, type CallEntry, type CallSource } from "@/lib/apiLog";
 import { CopyChip } from "@/components/ui/CopyChip";
 
@@ -27,6 +27,16 @@ export default function Inspector() {
   const { entries, clear } = useApiLog();
   const [open, setOpen] = useState(false);
 
+  // Escape closes the panel.
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
   return (
     <>
       <button
@@ -46,6 +56,10 @@ export default function Inspector() {
 
       <aside
         aria-label="API inspector"
+        aria-hidden={!open}
+        // The panel is only translated off-screen; inert keeps its controls
+        // out of the tab order while hidden.
+        inert={!open}
         className={`fixed top-0 right-0 z-30 h-full w-full border-l border-ink-900 bg-white shadow-xl transition-transform duration-200 ease-out sm:w-[500px] ${
           open ? "translate-x-0" : "translate-x-full"
         }`}

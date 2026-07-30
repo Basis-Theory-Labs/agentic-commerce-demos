@@ -116,6 +116,9 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
   const [mcCue, setMcCue] = useState<"message" | "closed" | null>(null);
   const [otpCode, setOtpCode] = useState("");
   const [otpError, setOtpError] = useState<string | null>(null);
+  // Monotonic per-failure nonce: identical error text on consecutive wrong
+  // codes must still clear the boxes.
+  const [otpFailures, setOtpFailures] = useState(0);
   const [methodId, setMethodId] = useState<string | null>(null);
   const [ceremonyError, setCeremonyError] = useState<string | null>(null);
   const [pollNote, setPollNote] = useState<string | null>(null);
@@ -199,6 +202,9 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
           "Still pending — polling complete every 2s (up to 10 tries). The mock never returns pending, but real Mastercard does.",
         );
         try {
+          // We already hold a pending `complete` response — wait one poll
+          // interval before the next attempt instead of firing immediately.
+          await new Promise((resolve) => setTimeout(resolve, 2000));
           const final = await pollComplete(
             () =>
               callAgentic<VerifyResponse>(
@@ -416,7 +422,12 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
                 {nextAction.max_attempts ?? 3} attempts (display hints; Visa enforces the real
                 limits).{isTest && " Mock behavior: any code works on test tenants."}
               </Callout>
-              <OtpInput onComplete={setOtpCode} error={otpError} disabled={busy} />
+              <OtpInput
+                onComplete={setOtpCode}
+                error={otpError}
+                errorKey={otpFailures}
+                disabled={busy}
+              />
               <RequestPanel
                 method="POST"
                 path={verifyPath}
@@ -424,12 +435,14 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
                 tag="submit_otp"
                 defaultBody={{ ...base, action: "submit_otp", otp_code: otpCode }}
                 sendLabel="Submit Code"
-                disabled={busy}
+                disabled={busy || otpCode.length === 0}
                 onSendStateChange={setBusy}
                 onSuccess={(result) => applyResult(result as VerifyResponse)}
                 onError={(error) => {
                   if (error.problem.type?.includes("INVALID_OTP")) {
                     setOtpError(error.problem.detail || "The code is invalid or expired — try again.");
+                    setOtpFailures((n) => n + 1);
+                    setOtpCode("");
                   }
                 }}
               />
@@ -488,6 +501,7 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
                     defaultBody={{ ...base, action: "submit_passkey", assurance_data: assurance }}
                     sendLabel="Submit Passkey"
                     disabled={busy}
+                    onSendStateChange={setBusy}
                     onSuccess={(result) => applyResult(result as VerifyResponse)}
                   />
                 </>
@@ -605,47 +619,55 @@ function ManualVerify({ allowance, onActive }: { allowance: Allowance; onActive?
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-ink-200 pt-3">
-        {verifyState && (
-          <Button
-            variant="ghost"
-            small
-            disabled={busy}
-            onClick={() => sendVerify({ action: "start", display_name: displayName, device_context: collectDeviceContext() }).catch(() => {})}
-          >
-            Restart verification
-          </Button>
-        )}
-        {isTest && provider === "vic" && (
-          <Button
-            variant="ghost"
-            small
-            disabled={busy}
-            onClick={() =>
-              sendVerify({ action: "submit_passkey", assurance_data: { result: "approved" } }).catch(() => {})
-            }
-          >
-            Skip ceremony (test tenant only)
-          </Button>
-        )}
-        {isTest && provider === "agentpay" && verifyState && (
-          <Button
-            variant="ghost"
-            small
-            disabled={busy}
-            onClick={() => sendVerify({ action: "complete" }).catch(() => {})}
-          >
-            Complete without callback (test tenant only)
-          </Button>
-        )}
-      </div>
+      {(verifyState || (isTest && provider === "vic")) && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-ink-200 pt-3">
+          {verifyState && (
+            <Button
+              variant="ghost"
+              small
+              disabled={busy}
+              onClick={() => sendVerify({ action: "start", display_name: displayName, device_context: collectDeviceContext() }).catch(() => {})}
+            >
+              Restart verification
+            </Button>
+          )}
+          {isTest && provider === "vic" && (
+            <Button
+              variant="ghost"
+              small
+              disabled={busy}
+              onClick={() =>
+                sendVerify({ action: "submit_passkey", assurance_data: { result: "approved" } }).catch(() => {})
+              }
+            >
+              Skip ceremony (test tenant only)
+            </Button>
+          )}
+          {isTest && provider === "agentpay" && verifyState && (
+            <Button
+              variant="ghost"
+              small
+              disabled={busy}
+              onClick={() => sendVerify({ action: "complete" }).catch(() => {})}
+            >
+              Complete without callback (test tenant only)
+            </Button>
+          )}
+        </div>
+      )}
+      {isTest && provider === "vic" && (
+        <p className="text-[11px] text-ink-500">
+          “Skip ceremony” calls <code>submit_passkey</code> with a stub body, straight to active —
+          the mock ignores prior state and content (that is why it works even before{" "}
+          <code>start</code>); real Visa would reject it.
+        </p>
+      )}
       {verifyState && provider === "vic" && (
         <p className="text-[11px] text-ink-500">
-          Device-binding memory: after a REGISTER ceremony, the device is bound (the mock records
-          it after <code>submit_otp</code>). “Restart verification” then jumps straight to an
-          AUTHENTICATE ceremony — no OTP.{" "}
-          {isTest &&
-            "“Skip ceremony” calls submit_passkey with a stub body — the mock ignores state and content; real Visa would reject it."}
+          Device-binding memory (per allowance): the mock marks the device bound as soon as{" "}
+          <code>submit_otp</code> succeeds; real Visa binds it when the REGISTER ceremony
+          completes. Either way, “Restart verification” skips the OTP — re-initialize the session,
+          send <code>submit_session</code>, and the ceremony comes back AUTHENTICATE.
         </p>
       )}
     </div>
