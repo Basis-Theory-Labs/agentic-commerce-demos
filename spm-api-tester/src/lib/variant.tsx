@@ -48,14 +48,20 @@ export function useFlowVariant(): { variant: FlowVariant; setVariant: (v: FlowVa
 export function VariantToggle() {
   const { variant, setVariant } = useFlowVariant();
   return (
-    <div role="group" aria-label="Verification flow variant" className="inline-flex border border-ink-300">
+    <div
+      role="group"
+      aria-label="Verification flow variant"
+      className="inline-flex rounded-lg border border-ink-300 bg-surface p-1"
+    >
       {(["manual", "sdk"] as const).map((option) => (
         <button
           key={option}
           aria-pressed={variant === option}
           onClick={() => setVariant(option)}
-          className={`px-3 py-1.5 text-xs font-medium ${
-            variant === option ? "bg-ink-900 text-white" : "bg-white text-ink-600 hover:text-ink-900"
+          className={`rounded-md px-3.5 py-2 text-xs font-semibold transition-colors ${
+            variant === option
+              ? "bg-accent text-accent-foreground"
+              : "text-ink-600 hover:bg-ink-50 hover:text-ink-900"
           }`}
         >
           {option === "manual" ? "Manual (raw API)" : "SDK"}

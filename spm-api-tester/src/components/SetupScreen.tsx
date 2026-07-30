@@ -22,22 +22,31 @@ export function SetupScreen({
   missingPublic: boolean;
 }) {
   return (
-    <main className="bg-dots min-h-screen px-4 py-16">
-      <div className="mx-auto max-w-xl space-y-5 border border-ink-200 bg-white p-8">
-        <h1 className="text-2xl font-semibold">One-time setup</h1>
-        <p className="text-sm text-ink-600">
+    <main className="bg-dots min-h-screen px-5 py-12 sm:py-20">
+      <div className="surface-shadow mx-auto max-w-3xl space-y-7 rounded-2xl border border-ink-200 bg-surface p-6 sm:p-10">
+        <div>
+          <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-accent uppercase">
+            SPM API Tester
+          </p>
+          <h1 className="text-3xl font-semibold sm:text-4xl">One-time setup</h1>
+        </div>
+        <p className="max-w-2xl text-base leading-relaxed text-ink-600">
           The SPM API Tester needs two Basis Theory application keys before it can run. Copy{" "}
           <code className="bg-ink-100 px-1">.env.example</code> to{" "}
           <code className="bg-ink-100 px-1">.env.local</code>, set the values below, and restart
           the dev server.
         </p>
 
-        <ul className="space-y-3 text-sm">
-          <li className={missingPublic ? "" : "opacity-50"}>
-            <div className="font-mono text-xs font-semibold text-ink-950">
+        <ul className="grid gap-4 text-sm md:grid-cols-2">
+          <li
+            className={`rounded-xl border border-ink-200 bg-ink-50 p-5 ${
+              missingPublic ? "" : "opacity-50"
+            }`}
+          >
+            <div className="font-mono text-sm font-semibold text-ink-950">
               NEXT_PUBLIC_BT_API_KEY {missingPublic ? "— missing" : "— configured ✓"}
             </div>
-            <p className="mt-1 text-xs text-ink-600">
+            <p className="mt-2 text-sm leading-relaxed text-ink-600">
               A <b>public</b> application key. It runs in the browser (that is what public keys
               are for) and needs the permissions{" "}
               <code className="bg-ink-100 px-1">token:create</code>,{" "}
@@ -47,14 +56,18 @@ export function SetupScreen({
               private.
             </p>
           </li>
-          <li className={missingPrivate ? "" : "opacity-50"}>
-            <div className="font-mono text-xs font-semibold text-ink-950">
+          <li
+            className={`rounded-xl border border-ink-200 bg-ink-50 p-5 ${
+              missingPrivate ? "" : "opacity-50"
+            }`}
+          >
+            <div className="font-mono text-sm font-semibold text-ink-950">
               BT_API_KEY {missingPrivate ? "— missing" : "— configured ✓"}
             </div>
-            <div className="mt-1 text-xs text-ink-600">
+            <div className="mt-2 text-sm leading-relaxed text-ink-600">
               A <b>private</b> application key. It never leaves the Next.js server and needs
               exactly:
-              <ul className="mt-1 list-disc pl-5 font-mono text-[11px]">
+              <ul className="mt-1 list-disc pl-5 font-mono text-xs">
                 <li>agentic:payment-method:get</li>
                 <li>agentic:payment-method:delete</li>
                 <li>agentic:allowance:create</li>

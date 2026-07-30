@@ -17,7 +17,7 @@ const NEUTRAL = "border-ink-200 bg-ink-50 text-ink-700";
 export function StatusPill({ status }: { status: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 border px-1.5 py-0.5 text-[11px] font-medium ${TONE[status] ?? NEUTRAL}`}
+      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium ${TONE[status] ?? NEUTRAL}`}
     >
       <span aria-hidden className="h-1.5 w-1.5 bg-current" style={{ borderRadius: "50%" }} />
       {status}
@@ -28,18 +28,18 @@ export function StatusPill({ status }: { status: string }) {
 export function RailChips({ rails }: { rails?: Rail[] }) {
   if (!rails?.length) return null;
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-2">
       {rails.map((rail) => (
         <span
           key={`${rail.rail}-${rail.provider ?? ""}`}
           title={rail.error?.code}
-          className="inline-flex items-center gap-1.5 border border-ink-200 bg-white px-2 py-1 text-[11px]"
+          className="inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-ink-200 bg-ink-50 px-2.5 py-1.5 text-xs"
         >
           <span className="font-mono font-semibold text-ink-900">{rail.rail}</span>
           {rail.provider && <span className="text-ink-500">· {rail.provider}</span>}
           <StatusPill status={rail.status} />
           {rail.status === "error" && rail.error?.code && (
-            <span className="font-mono text-[10px] text-error">{rail.error.code}</span>
+            <span className="font-mono text-[11px] text-error">{rail.error.code}</span>
           )}
         </span>
       ))}

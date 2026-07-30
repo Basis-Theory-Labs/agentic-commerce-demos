@@ -127,7 +127,7 @@ export function VerifyPanel({
   const provider = rail.provider;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <RailChips rails={allowance.rails} />
         <VariantToggle />
@@ -148,8 +148,8 @@ export function VerifyPanel({
           onActive={onActive}
         />
       )}
-      <details className="border border-ink-200 bg-white px-3 py-2 text-xs text-ink-600">
-        <summary className="cursor-pointer font-medium text-ink-900">
+      <details className="rounded-xl border border-ink-200 bg-surface px-4 py-3 text-xs text-ink-600">
+        <summary className="cursor-pointer font-semibold text-ink-900">
           Not simulatable with test cards
         </summary>
         <ul className="mt-2 list-disc space-y-1 pl-4">
@@ -439,7 +439,7 @@ function ManualVerify({
 
   if (active) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-5">
         <Callout tone="success" title="Rail active">
           The network confirmed the ceremony server-to-server. Credentials can now be minted on
           this rail. Verifying an already-active rail is harmless — <code>start</code> just
@@ -451,10 +451,10 @@ function ManualVerify({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       {!verifyState && (
         <>
-          <p className="text-xs text-ink-600">
+          <p className="text-sm leading-relaxed text-ink-600">
             Card networks require cardholder verification before an agentic-token rail releases
             credentials. You drive the browser ceremony; Basis Theory validates every step with
             the network server-to-server — nothing the browser sends can activate the rail by
@@ -474,8 +474,8 @@ function ManualVerify({
       )}
 
       {verifyState && nextAction && (
-        <div className="border border-ink-200 bg-white p-3">
-          <h3 className="mb-2 font-mono text-xs font-semibold text-ink-950">
+        <div className="surface-shadow rounded-xl border border-ink-200 bg-surface p-4 sm:p-5">
+          <h3 className="mb-4 font-mono text-sm font-semibold text-accent">
             next_action: {String(nextAction.type)}
           </h3>
 
@@ -518,14 +518,16 @@ function ManualVerify({
                 Visa offers these one-time-code destinations. The <code>value</code> labels are
                 opaque, issuer-masked strings — display them verbatim.
               </Callout>
-              <div role="radiogroup" aria-label="Verification method" className="space-y-1.5">
+              <div role="radiogroup" aria-label="Verification method" className="space-y-2">
                 {nextAction.methods.map((method, index) => {
                   const checked = methodId ? methodId === method.id : index === 0;
                   return (
                     <label
                       key={method.id}
-                      className={`flex cursor-pointer items-center gap-2 border p-2 text-xs ${
-                        checked ? "border-ink-900 bg-ink-50" : "border-ink-200"
+                      className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm ${
+                        checked
+                          ? "border-accent/60 bg-accent-soft"
+                          : "border-ink-200 bg-ink-50/40"
                       }`}
                     >
                       <input
@@ -592,7 +594,7 @@ function ManualVerify({
                   }}
                 />
               ) : (
-                <p className="text-[11px] text-ink-500">
+                <p className="text-xs text-ink-500">
                   Enter the complete code to populate the strict-schema request body.
                 </p>
               )}
@@ -734,7 +736,7 @@ function ManualVerify({
                 The API returned a next_action this tester does not know how to drive —
                 next_action types are an open set. Raw payload:
               </Callout>
-              <pre className="overflow-x-auto border border-ink-200 bg-ink-50 p-2 font-mono text-[11px]">
+              <pre className="overflow-x-auto rounded-lg border border-ink-200 bg-ink-50 p-3 font-mono text-xs">
                 {JSON.stringify(nextAction, null, 2)}
               </pre>
             </div>
@@ -743,7 +745,7 @@ function ManualVerify({
       )}
 
       {verifyState && !nextAction && verifyState.status !== "active" && (
-        <div className="space-y-2.5 border border-ink-200 bg-white p-3">
+        <div className="space-y-3 rounded-xl border border-ink-200 bg-surface p-4">
           <Callout tone="warning" title="Verification still pending">
             The rail is <code>verification_required</code> with nothing for the browser to do —
             the provider hasn’t finalized yet. Send <code>complete</code> again (it is
@@ -767,7 +769,10 @@ function ManualVerify({
       )}
 
       {ceremonyError && (
-        <div role="alert" className="border border-error-border bg-error-soft p-2 text-xs text-error">
+        <div
+          role="alert"
+          className="rounded-lg border border-error-border bg-error-soft p-3 text-xs text-error"
+        >
           {ceremonyError}
         </div>
       )}
@@ -809,14 +814,14 @@ function ManualVerify({
         </div>
       )}
       {isTest && provider === "vic" && (
-        <p className="text-[11px] text-ink-500">
+        <p className="text-xs text-ink-500">
           “Skip ceremony” calls <code>submit_passkey</code> with a stub body, straight to active —
           the mock ignores prior state and content (that is why it works even before{" "}
           <code>start</code>); real Visa would reject it.
         </p>
       )}
       {verifyState && provider === "vic" && (
-        <p className="text-[11px] text-ink-500">
+        <p className="text-xs text-ink-500">
           Device-binding memory (per allowance): the mock marks the device bound as soon as{" "}
           <code>submit_otp</code> succeeds; real Visa binds it when the REGISTER ceremony
           completes. Either way, “Restart verification” skips the OTP — re-initialize the session,
@@ -953,8 +958,8 @@ function SdkVerify({
   };
 
   return (
-    <div className="space-y-3">
-      <p className="text-xs text-ink-600">
+    <div className="space-y-5">
+      <p className="text-sm leading-relaxed text-ink-600">
         This is the whole integration a customer ships: one factory call, one{" "}
         <code>verifyAllowance</code>. The SDK collects device context, drives the Visa
         iframe/popup or Mastercard redirect, renders its own OTP and interstitial UI, and resolves
@@ -974,7 +979,10 @@ function SdkVerify({
         </Button>
       )}
       {error && (
-        <div role="alert" className="border border-error-border bg-error-soft p-2 text-xs text-error">
+        <div
+          role="alert"
+          className="rounded-lg border border-error-border bg-error-soft p-3 text-xs text-error"
+        >
           {error}
         </div>
       )}

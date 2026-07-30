@@ -87,14 +87,14 @@ export function ImportPanel({
 
   return (
     <div>
-      <div className="flex gap-1.5">
+      <div className="flex flex-wrap gap-2">
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={config.placeholder}
           spellCheck={false}
           aria-label={`Import ${config.label} id`}
-          className="min-w-0 flex-1 border border-ink-300 bg-white px-2 py-1.5 font-mono text-xs text-ink-900 focus:border-ink-900 focus:outline-none"
+          className="min-w-64 flex-1 rounded-lg border border-ink-300 bg-ink-50 px-3 py-2 font-mono text-xs text-ink-900 focus:border-accent focus:outline-none"
           onKeyDown={(e) => {
             if (e.key === "Enter") submit();
           }}
@@ -104,7 +104,7 @@ export function ImportPanel({
         </Button>
       </div>
       {error && (
-        <p role="alert" className="mt-1 text-[11px] text-error">
+        <p role="alert" className="mt-2 text-xs text-error">
           {error}
         </p>
       )}

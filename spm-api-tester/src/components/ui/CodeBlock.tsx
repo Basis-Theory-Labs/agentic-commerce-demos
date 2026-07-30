@@ -28,11 +28,14 @@ export function CodeBlock({
   };
 
   return (
-    <details className="group border border-ink-200 bg-white" open={defaultOpen}>
-      <summary className="flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-xs font-medium text-ink-900 hover:bg-ink-50">
+    <details
+      className="group overflow-hidden rounded-xl border border-ink-200 bg-surface"
+      open={defaultOpen}
+    >
+      <summary className="flex cursor-pointer items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-ink-900 transition-colors hover:bg-ink-50">
         <span>
           Code — {title}
-          <span className="ml-2 border border-ink-200 bg-ink-50 px-1 py-0.5 font-mono text-[10px] text-ink-500">
+          <span className="ml-2 rounded-md border border-ink-200 bg-ink-50 px-1.5 py-0.5 font-mono text-[11px] font-normal text-ink-500">
             {language}
           </span>
         </span>
@@ -42,11 +45,11 @@ export function CodeBlock({
         <button
           type="button"
           onClick={copy}
-          className="absolute top-2 right-2 border border-ink-200 bg-white px-1.5 py-0.5 text-[10px] text-ink-600 hover:border-ink-400"
+          className="absolute top-3 right-3 rounded-md border border-ink-300 bg-surface px-2 py-1 text-[11px] text-ink-600 transition-colors hover:border-accent/50 hover:text-ink-900"
         >
           {copied ? "Copied" : "Copy"}
         </button>
-        <pre className="overflow-x-auto bg-ink-50 p-3 font-mono text-[11px] leading-relaxed text-ink-800">
+        <pre className="overflow-x-auto bg-screen/45 p-4 font-mono text-xs leading-relaxed text-ink-800">
           {code}
         </pre>
       </div>

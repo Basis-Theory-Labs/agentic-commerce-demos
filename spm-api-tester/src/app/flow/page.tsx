@@ -91,8 +91,8 @@ function Flow() {
   const reachableIds = new Set<string>(STEPS.map((s) => s.id));
 
   return (
-    <main className="mx-auto max-w-3xl px-4 pb-24">
-      <div className="sticky top-0 z-10 -mx-4 mb-6 bg-white/95 px-4 backdrop-blur">
+    <main className="min-w-0 pb-24">
+      <div className="sticky top-0 z-30 border-b border-ink-200 bg-screen/95 backdrop-blur-xl md:top-18">
         <Stepper
           steps={STEPS}
           currentId={step}
@@ -102,114 +102,123 @@ function Flow() {
         />
       </div>
 
-      {step === "card" && (
-        <StepShell
-          title="Start with a Card"
-          lead="Everything begins with a vaulted card token. Pick a mock card (each drives a different scenario) or tokenize a real one with Elements."
-          onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
-        >
-          <CardTokenizePanel
-            onTokenized={(id) =>
-              setParams({ step: "payment-method", tok: id, pm: null, alw: null })
-            }
-          />
-        </StepShell>
-      )}
-
-      {step === "payment-method" && (
-        <StepShell
-          title="Create the Payment Method"
-          lead="Registering the token for agentic use provisions rails in parallel — the ways this card can pay. Each rail reports enabled, pending, or error independently."
-          onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
-        >
-          <PaymentMethodStep
-            tokenId={tokenId}
-            pmId={pmId}
-            onTokenImported={(id) => setParams({ tok: id, pm: null, alw: null })}
-            onPaymentMethodImported={(id) => setParams({ pm: id, alw: null })}
-            onCreated={(pm) => setParams({ pm: pm.id, alw: null })}
-            onContinue={() => setParams({ step: "allowance" })}
-          />
-        </StepShell>
-      )}
-
-      {step === "allowance" && (
-        <StepShell
-          title="Grant an Allowance"
-          lead="The allowance is the mandate: how much, at which merchant, until when. Issued credentials and unknown mint outcomes draw from it; conclusive mint failures release their reservation."
-          onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
-        >
-          <AllowanceStep
-            pmId={pmId}
-            alwId={alwId}
-            onPmImported={(id) => setParams({ pm: id, alw: null })}
-            onAllowanceImported={(id) => setParams({ alw: id })}
-            onCreated={(alw) => setParams({ alw: alw.id })}
-            onContinue={(needsVerify) =>
-              setParams({ step: needsVerify ? "verify" : "credentials" })
-            }
-          />
-        </StepShell>
-      )}
-
-      {step === "verify" && (
-        <StepShell
-          title="Verify the Agentic Token Rail"
-          lead="Card networks require cardholder verification before this rail releases credentials. Run it step by step against the raw API, or with the SDK."
-          onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
-        >
-          {alwEntry ? (
-            <VerifyPanel
-              entry={alwEntry}
-              scenarioPan={scenarioForAllowance(state, alwId)}
-              onActive={() => undefined}
+      <div className="mx-auto max-w-[1040px] px-5 py-9 sm:px-8 sm:py-12 lg:px-10">
+        {step === "card" && (
+          <StepShell
+            eyebrow="Step 1 · Card"
+            title="Start with a Card"
+            lead="Everything begins with a vaulted card token. Pick a mock card (each drives a different scenario) or tokenize a real one with Elements."
+            onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
+          >
+            <CardTokenizePanel
+              onTokenized={(id) =>
+                setParams({ step: "payment-method", tok: id, pm: null, alw: null })
+              }
             />
-          ) : (
-            <MissingResource
-              label="No allowance selected — create one in the Allowance step or import an id:"
-              kind="allowance"
-              initialValue={alwId ?? ""}
-              onImported={(id) => setParams({ alw: id })}
-            />
-          )}
-          {alwEntry && (!agenticRail || agenticRail.status === "active") && (
-            <div className="mt-4">
-              <Button onClick={() => setParams({ step: "credentials" })}>
-                Continue → Credentials
-              </Button>
-            </div>
-          )}
-        </StepShell>
-      )}
+          </StepShell>
+        )}
 
-      {step === "credentials" && (
-        <StepShell
-          title="Mint Credentials"
-          lead="Each issued credential—and any unknown provider outcome—draws from the allowance; conclusive failures release their reservation. This tester sends a fresh BT-IDEMPOTENCY-KEY, and credential values are returned exactly once."
-          onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
-        >
-          {alwEntry ? (
-            <MintPanel entry={alwEntry} scenarioPan={scenarioForAllowance(state, alwId)} />
-          ) : (
-            <MissingResource
-              label="No allowance selected — create one first or import an id:"
-              kind="allowance"
-              initialValue={alwId ?? ""}
-              onImported={(id) => setParams({ alw: id })}
+        {step === "payment-method" && (
+          <StepShell
+            eyebrow="Step 2 · Payment Method"
+            title="Create the Payment Method"
+            lead="Registering the token for agentic use provisions rails in parallel — the ways this card can pay. Each rail reports enabled, pending, or error independently."
+            onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
+          >
+            <PaymentMethodStep
+              tokenId={tokenId}
+              pmId={pmId}
+              onTokenImported={(id) => setParams({ tok: id, pm: null, alw: null })}
+              onPaymentMethodImported={(id) => setParams({ pm: id, alw: null })}
+              onCreated={(pm) => setParams({ pm: pm.id, alw: null })}
+              onContinue={() => setParams({ step: "allowance" })}
             />
-          )}
-        </StepShell>
-      )}
+          </StepShell>
+        )}
+
+        {step === "allowance" && (
+          <StepShell
+            eyebrow="Step 3 · Allowance"
+            title="Grant an Allowance"
+            lead="The allowance is the mandate: how much, at which merchant, until when. Issued credentials and unknown mint outcomes draw from it; conclusive mint failures release their reservation."
+            onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
+          >
+            <AllowanceStep
+              pmId={pmId}
+              alwId={alwId}
+              onPmImported={(id) => setParams({ pm: id, alw: null })}
+              onAllowanceImported={(id) => setParams({ alw: id })}
+              onCreated={(alw) => setParams({ alw: alw.id })}
+              onContinue={(needsVerify) =>
+                setParams({ step: needsVerify ? "verify" : "credentials" })
+              }
+            />
+          </StepShell>
+        )}
+
+        {step === "verify" && (
+          <StepShell
+            eyebrow="Step 4 · Verification"
+            title="Verify the Agentic Token Rail"
+            lead="Card networks require cardholder verification before this rail releases credentials. Run it step by step against the raw API, or with the SDK."
+            onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
+          >
+            {alwEntry ? (
+              <VerifyPanel
+                entry={alwEntry}
+                scenarioPan={scenarioForAllowance(state, alwId)}
+                onActive={() => undefined}
+              />
+            ) : (
+              <MissingResource
+                label="No allowance selected — create one in the Allowance step or import an id:"
+                kind="allowance"
+                initialValue={alwId ?? ""}
+                onImported={(id) => setParams({ alw: id })}
+              />
+            )}
+            {alwEntry && (!agenticRail || agenticRail.status === "active") && (
+              <div className="mt-5">
+                <Button onClick={() => setParams({ step: "credentials" })}>
+                  Continue → Credentials
+                </Button>
+              </div>
+            )}
+          </StepShell>
+        )}
+
+        {step === "credentials" && (
+          <StepShell
+            eyebrow="Step 5 · Credentials"
+            title="Mint Credentials"
+            lead="Each issued credential—and any unknown provider outcome—draws from the allowance; conclusive failures release their reservation. This tester sends a fresh BT-IDEMPOTENCY-KEY, and credential values are returned exactly once."
+            onRestart={() => setParams({ step: "card", tok: null, pm: null, alw: null })}
+          >
+            {alwEntry ? (
+              <MintPanel entry={alwEntry} scenarioPan={scenarioForAllowance(state, alwId)} />
+            ) : (
+              <MissingResource
+                label="No allowance selected — create one first or import an id:"
+                kind="allowance"
+                initialValue={alwId ?? ""}
+                onImported={(id) => setParams({ alw: id })}
+              />
+            )}
+          </StepShell>
+        )}
+      </div>
     </main>
   );
 }
 
 function StepShell({
+  eyebrow,
   title,
   lead,
   onRestart,
   children,
 }: {
+  eyebrow: string;
   title: string;
   lead: string;
   onRestart: () => void;
@@ -217,18 +226,21 @@ function StepShell({
 }) {
   return (
     <section aria-label={title}>
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <h1 id="step-heading" tabIndex={-1} className="text-xl font-semibold outline-none">
+      <div className="mb-8 flex flex-col items-start justify-between gap-5 sm:flex-row sm:gap-6">
+        <div className="min-w-0 max-w-3xl">
+          <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-accent uppercase">
+            {eyebrow}
+          </p>
+          <h1 id="step-heading" tabIndex={-1} className="text-3xl font-semibold outline-none sm:text-4xl">
             {title}
           </h1>
-          <p className="mt-1 max-w-xl text-xs text-ink-600">{lead}</p>
+          <p className="mt-3 max-w-3xl text-base leading-relaxed text-ink-600">{lead}</p>
         </div>
-        <Button variant="ghost" small onClick={onRestart}>
+        <Button variant="ghost" small className="shrink-0" onClick={onRestart}>
           Start over
         </Button>
       </div>
-      <div className="space-y-4">{children}</div>
+      <div className="space-y-5">{children}</div>
     </section>
   );
 }
@@ -245,8 +257,8 @@ function MissingResource({
   onImported: (id: string) => void;
 }) {
   return (
-    <div className="space-y-2 border border-ink-200 bg-white p-4">
-      <p className="text-xs text-ink-600">{label}</p>
+    <div className="surface-shadow space-y-3 rounded-xl border border-ink-200 bg-surface p-5">
+      <p className="text-sm text-ink-600">{label}</p>
       <ImportPanel
         key={`${kind}:${initialValue ?? ""}`}
         kind={kind}
@@ -308,7 +320,7 @@ function PaymentMethodStep({
           <div>
             <label
               htmlFor="consumer-email"
-              className="mb-1 block text-[11px] tracking-wide text-ink-500 uppercase"
+              className="mb-1.5 block text-xs font-medium tracking-wide text-ink-500 uppercase"
             >
               Consumer email
             </label>
@@ -317,7 +329,7 @@ function PaymentMethodStep({
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full max-w-sm border border-ink-300 bg-white px-2.5 py-1.5 text-sm focus:border-ink-900 focus:outline-none"
+              className="w-full max-w-lg rounded-lg border border-ink-300 bg-ink-50 px-3 py-2.5 text-sm focus:border-accent focus:outline-none"
             />
           </div>
           <RequestPanel

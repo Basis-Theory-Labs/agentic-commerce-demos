@@ -336,7 +336,7 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
   );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <AllowanceSummary allowance={allowance} />
       <ScenarioChip scenarioPan={scenarioPan} stage="credentials" />
 
@@ -353,12 +353,18 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
       ))}
 
       {mints.map((mint, index) => (
-        <details key={mint.key} className="group border border-ink-200 bg-white" open={index === 0}>
-          <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-ink-900 hover:bg-ink-50">
+        <details
+          key={mint.key}
+          className="group overflow-hidden rounded-xl border border-ink-200 bg-surface"
+          open={index === 0}
+        >
+          <summary className="cursor-pointer px-4 py-3.5 text-sm font-semibold text-ink-900 transition-colors hover:bg-ink-50">
             {mint.title}
-            <span className="mt-0.5 block font-normal text-ink-500">{mint.blurb}</span>
+            <span className="mt-1 block text-xs font-normal leading-relaxed text-ink-500">
+              {mint.blurb}
+            </span>
           </summary>
-          <div className="border-t border-ink-200 p-3">
+          <div className="border-t border-ink-200 bg-screen/20 p-4">
             <RequestPanel
               method="POST"
               path={`/allowances/${allowance.id}/credentials`}
@@ -385,19 +391,19 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
       ))}
 
       {demos.length > 0 && (
-        <details className="border border-ink-200 bg-white">
-          <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-ink-900 hover:bg-ink-50">
+        <details className="overflow-hidden rounded-xl border border-ink-200 bg-surface">
+          <summary className="cursor-pointer px-4 py-3.5 text-sm font-semibold text-ink-900 transition-colors hover:bg-ink-50">
             Error demos — fail on purpose
-            <span className="mt-0.5 block font-normal text-ink-500">
+            <span className="mt-1 block text-xs font-normal leading-relaxed text-ink-500">
               Pre-built bodies that exercise the mint error paths. Each failure renders the full
               RFC 7807 problem in a toast and inline.
             </span>
           </summary>
-          <div className="space-y-3 border-t border-ink-200 p-3">
+          <div className="space-y-4 border-t border-ink-200 bg-screen/20 p-4">
             {demos.map((demo) => (
               <div key={demo.key}>
                 <h4 className="mb-1 text-xs font-medium text-ink-900">{demo.title}</h4>
-                <p className="mb-1.5 text-[11px] text-ink-500">{demo.blurb}</p>
+                <p className="mb-1.5 text-xs text-ink-500">{demo.blurb}</p>
                 <RequestPanel
                   method="POST"
                   path={`/allowances/${allowance.id}/credentials`}
@@ -447,7 +453,7 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
         </Button>
       </div>
       {listed && (
-        <div className="border border-ink-200 bg-white p-3 text-xs">
+        <div className="rounded-xl border border-ink-200 bg-surface p-4 text-xs">
           {listed.length === 0 ? (
             <p className="text-ink-500">No credentials minted on this allowance yet.</p>
           ) : (
@@ -455,7 +461,7 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
               {listed.map((item) => (
                 <li key={String(item.id)} className="flex flex-wrap items-center gap-2">
                   <CopyChip value={String(item.id)} />
-                  <span className="font-mono text-[11px] text-ink-600">
+                  <span className="font-mono text-xs text-ink-600">
                     {String(item.format)} · {String((item.amount as { value?: string })?.value)}{" "}
                     {String((item.amount as { currency?: string })?.currency)} ·{" "}
                     {String(item.status)}
@@ -480,7 +486,7 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
               ))}
             </ul>
           )}
-          <p className="mt-2 text-[11px] text-ink-500">
+          <p className="mt-2 text-xs text-ink-500">
             Metadata only — the spendable values were returned once, at mint time, and never
             again.
           </p>
@@ -492,10 +498,12 @@ export function MintPanel({ entry, scenarioPan }: { entry: AllowanceEntry; scena
 
 export function AllowanceSummary({ allowance }: { allowance: Allowance }) {
   return (
-    <div className="border border-ink-200 bg-white p-3">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+    <div className="surface-shadow rounded-xl border border-ink-200 bg-surface p-4 sm:p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <CopyChip value={allowance.id} />
-        <span className="text-[11px] text-ink-500">{allowance.status}</span>
+        <span className="rounded-md bg-ink-50 px-2 py-1 text-xs font-medium text-ink-600">
+          {allowance.status}
+        </span>
       </div>
       <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
         {(
@@ -506,15 +514,15 @@ export function AllowanceSummary({ allowance }: { allowance: Allowance }) {
             ["available", allowance.amount_available],
           ] as const
         ).map(([label, money]) => (
-          <div key={label}>
-            <dt className="text-[10px] tracking-wide text-ink-500 uppercase">{label}</dt>
-            <dd className="font-mono text-ink-950">
+          <div key={label} className="rounded-lg bg-ink-50 px-3 py-2.5">
+            <dt className="text-[11px] tracking-wide text-ink-500 uppercase">{label}</dt>
+            <dd className="mt-0.5 font-mono text-sm text-ink-950">
               {money?.value ?? "—"} {money?.currency ?? ""}
             </dd>
           </div>
         ))}
       </dl>
-      <div className="mt-2">
+      <div className="mt-4">
         <RailChips rails={allowance.rails} />
       </div>
     </div>

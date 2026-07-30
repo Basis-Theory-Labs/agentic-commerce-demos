@@ -114,8 +114,8 @@ export function PaymentMethodCard({
   };
 
   return (
-    <div className="border border-ink-200 bg-white p-3">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+    <div className="surface-shadow rounded-xl border border-ink-200 bg-surface p-4 sm:p-5">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <CopyChip value={pm.id} />
         <span className="font-mono text-xs text-ink-600">
           {pm.card?.brand ?? "card"} •••• {pm.card?.last4}
@@ -124,11 +124,11 @@ export function PaymentMethodCard({
         </span>
       </div>
       <RailChips rails={pm.rails} />
-      <div className="mt-2">
+      <div className="mt-3">
         <ScenarioChip scenarioPan={entry.scenarioPan} stage="payment-method" />
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         {failedRails.map((rail) => (
           <Button
             key={retryKey(rail)}
@@ -148,7 +148,7 @@ export function PaymentMethodCard({
         {allowDelete &&
           (confirmingDelete ? (
             <>
-              <span className="text-[11px] text-error">
+              <span className="text-xs text-error">
                 Deleting cancels every allowance on this payment method.
               </span>
               <Button variant="destructive" small loading={deleting} onClick={remove}>
@@ -171,7 +171,7 @@ export function PaymentMethodCard({
       </div>
 
       {errors && (
-        <div className="mt-2 border border-ink-200 bg-ink-50 p-2 text-xs">
+        <div className="mt-3 rounded-lg border border-ink-200 bg-ink-50 p-3 text-xs">
           <ProviderErrorList
             page={errors}
             emptyLabel="No provider errors recorded for this payment method."

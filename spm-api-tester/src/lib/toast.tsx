@@ -158,14 +158,14 @@ function Toast({
       onMouseLeave={onResume}
       onFocus={onPause}
       onBlur={onResume}
-      className={`pointer-events-auto border ${border} bg-white p-3 text-sm shadow-lg`}
+      className={`pointer-events-auto rounded-xl border ${border} bg-surface p-4 text-sm shadow-2xl`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="font-medium text-ink-950">{toast.title}</div>
           {toast.detail && <div className="mt-1 text-xs text-ink-600">{toast.detail}</div>}
           {toast.problem?.instance && (
-            <div className="mt-1 font-mono text-[10px] break-all text-ink-500">
+            <div className="mt-1 font-mono text-[11px] break-all text-ink-500">
               {toast.problem.instance}
             </div>
           )}
@@ -180,23 +180,23 @@ function Toast({
           )}
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             {toast.problem?.status !== undefined && (
-              <span className="border border-ink-200 bg-ink-50 px-1.5 py-0.5 font-mono text-[10px] text-ink-700">
+              <span className="border border-ink-200 bg-ink-50 px-1.5 py-0.5 font-mono text-[11px] text-ink-700">
                 HTTP {toast.problem.status}
               </span>
             )}
             {toast.problem?.type && (
-              <span className="border border-ink-200 bg-ink-50 px-1.5 py-0.5 font-mono text-[10px] text-ink-700">
+              <span className="border border-ink-200 bg-ink-50 px-1.5 py-0.5 font-mono text-[11px] text-ink-700">
                 {toast.problem.type}
               </span>
             )}
             {providerCorrelation && (
-              <span className="flex items-center gap-1 text-[10px] text-ink-500">
+              <span className="flex items-center gap-1 text-[11px] text-ink-500">
                 provider correlation: <CopyChip value={providerCorrelation} />
               </span>
             )}
             {toast.copy && <CopyChip value={toast.copy.value} label={toast.copy.label} />}
             {toast.traceId && (
-              <span className="flex items-center gap-1 text-[10px] text-ink-500">
+              <span className="flex items-center gap-1 text-[11px] text-ink-500">
                 trace (for support): <CopyChip value={toast.traceId} />
               </span>
             )}

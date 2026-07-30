@@ -18,11 +18,11 @@ export function ScenarioChip({
         ? "border-warning-border bg-warning-soft text-warning"
         : "border-error-border bg-error-soft text-error";
   return (
-    <div className={`border px-3 py-2 text-xs ${tone}`}>
-      <span className="font-mono text-[10px]">
+    <div className={`rounded-lg border px-4 py-3 text-sm ${tone}`}>
+      <span className="font-mono text-[11px]">
         {scenario.pan.replace(/(\d{4})/g, "$1 ").trim()}
       </span>
-      <span className="ml-2 text-ink-700">{scenario.reminder}</span>
+      <span className="ml-2 leading-relaxed text-ink-700">{scenario.reminder}</span>
     </div>
   );
 }

@@ -52,10 +52,12 @@ export function JsonEditor({
   const lineCount = value.split("\n").length;
 
   return (
-    <div className="border border-ink-200 bg-white">
-      <div className="flex items-center justify-between border-b border-ink-200 bg-ink-50 px-2 py-1">
-        <span className="text-[10px] tracking-wide text-ink-500 uppercase">JSON body</span>
-        <div className="flex gap-1">
+    <div className="overflow-hidden rounded-lg border border-ink-200 bg-surface">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-200 bg-ink-50 px-3 py-2">
+        <span className="text-[11px] font-medium tracking-wide text-ink-500 uppercase">
+          JSON body
+        </span>
+        <div className="flex gap-1.5">
           <ToolbarButton onClick={format} disabled={!!parseError}>
             Format
           </ToolbarButton>
@@ -70,10 +72,10 @@ export function JsonEditor({
         spellCheck={false}
         aria-label={ariaLabel}
         aria-invalid={!!parseError}
-        className="block w-full resize-y bg-white px-2.5 py-2 font-mono text-[12px] leading-relaxed text-ink-900 focus:outline-none"
+        className="block min-h-28 w-full resize-y rounded-none bg-screen/50 px-3.5 py-3 font-mono text-[13px] leading-relaxed text-ink-900 focus:outline-none"
       />
       {parseError && (
-        <div className="border-t border-error-border bg-error-soft px-2.5 py-1.5 text-[11px] text-error">
+        <div className="border-t border-error-border bg-error-soft px-2.5 py-1.5 text-xs text-error">
           Invalid JSON: {parseError}
         </div>
       )}
@@ -95,7 +97,7 @@ function ToolbarButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="border border-ink-200 bg-white px-1.5 py-0.5 text-[10px] text-ink-700 hover:border-ink-400 disabled:opacity-40"
+      className="rounded-md border border-ink-300 bg-surface px-2 py-1 text-[11px] text-ink-700 transition-colors hover:border-accent/50 hover:text-ink-900 disabled:opacity-40"
     >
       {children}
     </button>

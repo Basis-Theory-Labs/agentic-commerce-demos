@@ -32,15 +32,16 @@ const MOCK_CVC = "123";
 
 // Hex literals, not CSS custom properties: the CardElement renders inside a
 // cross-origin Elements iframe that cannot read this page's variables. The
-// values mirror --mono-950 / --mono-400 / --error.
+// values mirror the customer-portal foreground / muted / danger colors.
 const ELEMENT_STYLE = {
   base: {
-    fontSize: "13px",
-    color: "#0a0a0a",
+    fontSize: "15px",
+    color: "#e4e4e7",
+    backgroundColor: "#17171a",
     fontFamily: "system-ui, sans-serif",
-    "::placeholder": { color: "#a1a1aa" },
+    "::placeholder": { color: "#717179" },
   },
-  invalid: { color: "#dc2626" },
+  invalid: { color: "#fda4af" },
 };
 
 export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: string) => void }) {
@@ -187,8 +188,12 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
   const canSubmit = !!bt && (tab === "mock" ? !!selected : complete) && !loading;
 
   return (
-    <div className="border border-ink-200 bg-white">
-      <div role="tablist" aria-label="Card source" className="flex border-b border-ink-200">
+    <div className="surface-shadow overflow-hidden rounded-xl border border-ink-200 bg-surface">
+      <div
+        role="tablist"
+        aria-label="Card source"
+        className="flex gap-1 border-b border-ink-200 bg-ink-50 px-3 pt-2"
+      >
         {(
           [
             ["mock", "Mock Cards"],
@@ -203,10 +208,10 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
               setTab(id);
               setComplete(false);
             }}
-            className={`px-4 py-2 text-xs font-medium ${
+            className={`rounded-b-none px-4 py-3 text-sm font-semibold transition-colors ${
               tab === id
-                ? "border-b-2 border-ink-900 text-ink-950"
-                : "text-ink-500 hover:text-ink-900"
+                ? "border-b-2 border-accent bg-surface text-accent"
+                : "text-ink-500 hover:bg-surface/60 hover:text-ink-900"
             }`}
           >
             {label}
@@ -214,7 +219,7 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
         ))}
       </div>
 
-      <div className="space-y-3 p-4">
+      <div className="space-y-5 p-4 sm:p-6">
         {tab === "mock" && isProduction && (
           <Callout tone="warning" title="Production tenant">
             These PANs only trigger scenarios on test tenants. On this tenant they are treated as
@@ -225,21 +230,21 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
 
         {tab === "mock" && (
           <>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               {CARD_SCENARIOS.map((scenario) => (
                 <button
                   key={scenario.pan}
                   onClick={() => setSelected(scenario)}
                   aria-pressed={selected?.pan === scenario.pan}
-                  className={`border p-2.5 text-left text-xs ${
+                  className={`rounded-xl border p-4 text-left text-sm transition-colors ${
                     selected?.pan === scenario.pan
-                      ? "border-ink-900 bg-ink-50"
-                      : "border-ink-200 bg-white hover:border-ink-400"
+                      ? "border-accent/60 bg-accent-soft"
+                      : "border-ink-200 bg-ink-50/50 hover:border-ink-300 hover:bg-ink-50"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span
-                      className={`border px-1.5 py-0.5 text-[10px] font-medium ${
+                      className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold ${
                         scenario.tone === "success"
                           ? "border-success-border bg-success-soft text-success"
                           : scenario.tone === "warning"
@@ -249,26 +254,28 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
                     >
                       {scenario.badge}
                     </span>
-                    <span className="text-[10px] tracking-wide text-ink-400 uppercase">
+                    <span className="text-[11px] tracking-wide text-ink-400 uppercase">
                       {scenario.brand}
                     </span>
                   </div>
-                  <div className="mt-1.5 font-mono text-[13px] text-ink-950">
+                  <div className="mt-2 font-mono text-sm font-semibold text-ink-950">
                     {scenario.pan.replace(/(\d{4})/g, "$1 ").trim()}
                   </div>
-                  <div className="mt-1 text-ink-600">{scenario.description}</div>
+                  <div className="mt-1.5 leading-relaxed text-ink-600">
+                    {scenario.description}
+                  </div>
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-ink-500">{DEFAULT_SCENARIO_NOTE}</p>
+            <p className="text-xs text-ink-500">{DEFAULT_SCENARIO_NOTE}</p>
           </>
         )}
 
         <div>
-          <label className="mb-1 block text-[11px] tracking-wide text-ink-500 uppercase">
+          <label className="mb-1.5 block text-xs font-medium tracking-wide text-ink-500 uppercase">
             Card
           </label>
-          <div className="border border-ink-300 bg-white px-2.5 py-1.5">
+          <div className="rounded-lg border border-ink-300 bg-ink-50 px-3.5 py-3">
             {tab === "mock" && selected && mockValue ? (
               // Remount per selection so the v2 static `value` option applies
               // at element creation — the most reliable prefill path.
@@ -314,7 +321,10 @@ export function CardTokenizePanel({ onTokenized }: { onTokenized?: (tokenId: str
         )}
 
         {error && (
-          <div role="alert" className="border border-error-border bg-error-soft p-2 text-xs text-error">
+          <div
+            role="alert"
+            className="rounded-lg border border-error-border bg-error-soft p-3 text-xs text-error"
+          >
             {error}
           </div>
         )}

@@ -28,19 +28,19 @@ export function ProviderErrorList({
       {page.data.map((error, index) => (
         <details
           key={error.id ?? `${error.code ?? "provider-error"}-${index}`}
-          className="border border-ink-200 bg-white p-2"
+          className="rounded-lg border border-ink-200 bg-surface p-3"
           open={index === 0}
         >
-          <summary className="cursor-pointer font-mono text-[11px] text-ink-800">
+          <summary className="cursor-pointer font-mono text-xs text-ink-800">
             {error.code ?? "PROVIDER_ERROR"} · {error.provider ?? "provider"}
             {error.operation ? ` · ${error.operation}` : ""}
             {error.rail ? `/${error.rail}` : ""}
           </summary>
-          <div className="mt-2 space-y-1.5">
+          <div className="mt-3 space-y-2">
             {error.title && <p className="text-xs font-medium text-ink-900">{error.title}</p>}
             {error.detail && <p className="text-xs text-ink-700">{error.detail}</p>}
             {error.occurred_at && (
-              <p className="font-mono text-[10px] text-ink-500">{error.occurred_at}</p>
+              <p className="font-mono text-[11px] text-ink-500">{error.occurred_at}</p>
             )}
             <div className="flex flex-wrap gap-1.5">
               {SUPPORT_IDS.map(([field, label]) => {

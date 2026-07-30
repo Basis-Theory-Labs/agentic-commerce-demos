@@ -16,8 +16,10 @@ export function Callout({
     success: "border-success-border bg-success-soft",
   };
   return (
-    <div className={`border ${tones[tone]} px-3 py-2.5 text-xs leading-relaxed text-ink-700`}>
-      {title && <div className="mb-1 font-medium text-ink-950">{title}</div>}
+    <div
+      className={`rounded-lg border ${tones[tone]} px-4 py-3 text-sm leading-relaxed text-ink-700`}
+    >
+      {title && <div className="mb-1 font-semibold text-ink-950">{title}</div>}
       {children}
     </div>
   );

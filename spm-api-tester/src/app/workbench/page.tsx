@@ -33,41 +33,78 @@ export default function WorkbenchPage() {
 }
 
 function Workbench() {
+  const resources = [
+    ["cards", "Cards & Tokens"],
+    ["payment-methods", "Payment Methods"],
+    ["allowances", "Allowances"],
+    ["verification", "Verification"],
+    ["credentials", "Credentials"],
+  ] as const;
+
   return (
-    <main className="mx-auto max-w-3xl space-y-10 px-4 py-8 pb-24">
-      <header>
-        <h1 className="text-xl font-semibold">Workbench</h1>
-        <p className="mt-1 text-xs text-ink-600">
+    <main className="mx-auto max-w-[1120px] px-5 py-10 pb-24 sm:px-8 lg:px-10 lg:py-12">
+      <header className="max-w-3xl">
+        <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-accent uppercase">
+          Resource workspace
+        </p>
+        <h1 className="text-3xl font-semibold sm:text-4xl">Workbench</h1>
+        <p className="mt-3 text-base leading-relaxed text-ink-600">
           Every resource type, freeform. Panels accept resources created here, in the Guided Flow,
           or pasted from anywhere else.
         </p>
       </header>
 
-      <TokensSection />
-      <PaymentMethodsSection />
-      <AllowancesSection />
-      <VerificationSection />
-      <CredentialsSection />
+      <nav
+        aria-label="Workbench resources"
+        className="my-8 flex gap-1 overflow-x-auto rounded-xl border border-ink-200 bg-surface p-1.5"
+      >
+        {resources.map(([id, label], index) => (
+          <a
+            key={id}
+            href={`#${id}`}
+            className="flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-50 hover:text-ink-900"
+          >
+            <span className="font-mono text-xs text-ink-400">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            {label}
+          </a>
+        ))}
+      </nav>
+
+      <div className="space-y-8">
+        <TokensSection />
+        <PaymentMethodsSection />
+        <AllowancesSection />
+        <VerificationSection />
+        <CredentialsSection />
+      </div>
     </main>
   );
 }
 
 function Section({
+  id,
   title,
   lead,
   children,
 }: {
+  id: string;
   title: string;
   lead: string;
   children: React.ReactNode;
 }) {
   return (
-    <section aria-label={title} className="space-y-3">
-      <div>
-        <h2 className="text-base font-semibold">{title}</h2>
-        <p className="mt-0.5 text-xs text-ink-600">{lead}</p>
+    <section
+      id={id}
+      aria-label={title}
+      className="surface-shadow scroll-mt-28 overflow-hidden rounded-2xl border border-ink-200 bg-surface"
+    >
+      <div className="border-b border-ink-200 px-5 py-5 sm:px-6">
+        <h2 className="text-xl font-semibold">{title}</h2>
+        <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-ink-600">{lead}</p>
       </div>
-      {children}
+      <div className="space-y-5 p-5 sm:p-6">{children}</div>
     </section>
   );
 }
@@ -78,13 +115,14 @@ function TokensSection() {
   const { state } = useSession();
   return (
     <Section
+      id="cards"
       title="Cards & Tokens"
       lead="Tokenize as many cards as you like — mock scenarios or your own via Elements — or import an existing token id."
     >
       <CardTokenizePanel />
       <ImportPanel kind="token" />
       {state.tokens.length > 0 && (
-        <ul className="space-y-1.5 border border-ink-200 bg-white p-3 text-xs">
+        <ul className="space-y-2 rounded-xl border border-ink-200 bg-ink-50 p-4 text-xs">
           {state.tokens.map((token) => (
             <li key={token.id} className="flex flex-wrap items-center gap-2">
               <CopyChip value={token.id} />
@@ -114,17 +152,18 @@ function PaymentMethodsSection() {
 
   return (
     <Section
+      id="payment-methods"
       title="Payment Methods"
       lead="Create from any session token or a pasted token id. Each create gets a fresh idempotency key; rails provision in parallel."
     >
       {state.tokens.length > 0 ? (
         <>
-          <label className="block text-[11px] tracking-wide text-ink-500 uppercase">
+          <label className="block text-xs font-medium tracking-wide text-ink-500 uppercase">
             Source token
             <select
               value={effectiveTokenId}
               onChange={(e) => setTokenId(e.target.value)}
-              className="mt-1 block w-full max-w-md border border-ink-300 bg-white px-2 py-1.5 font-mono text-xs"
+              className="mt-1.5 block w-full max-w-lg rounded-lg border border-ink-300 bg-ink-50 px-3 py-2.5 font-mono text-xs"
             >
               {state.tokens.map((token) => (
                 <option key={token.id} value={token.id}>
@@ -191,17 +230,18 @@ function AllowancesSection() {
 
   return (
     <Section
+      id="allowances"
       title="Allowances"
       lead="Create several on one payment method, PATCH the mandate (amount, description, expiry), cancel, retry failed rails, and inspect provider errors."
     >
       {usablePms.length > 0 ? (
         <>
-          <label className="block text-[11px] tracking-wide text-ink-500 uppercase">
+          <label className="block text-xs font-medium tracking-wide text-ink-500 uppercase">
             Payment method
             <select
               value={effectivePmId}
               onChange={(e) => setPmId(e.target.value)}
-              className="mt-1 block w-full max-w-md border border-ink-300 bg-white px-2 py-1.5 font-mono text-xs"
+              className="mt-1.5 block w-full max-w-lg rounded-lg border border-ink-300 bg-ink-50 px-3 py-2.5 font-mono text-xs"
             >
               {usablePms.map((pm) => (
                 <option key={pm.resource.id} value={pm.resource.id}>
@@ -290,14 +330,14 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
   };
 
   return (
-    <div className="space-y-2 border border-ink-200 bg-white p-3">
+    <div className="space-y-4 rounded-xl border border-ink-200 bg-ink-50/40 p-4 sm:p-5">
       <AllowanceSummary allowance={allowance} />
 
       <details>
-        <summary className="cursor-pointer text-xs font-medium text-ink-900">
+        <summary className="cursor-pointer text-sm font-semibold text-ink-900">
           PATCH — update the mandate
         </summary>
-        <div className="mt-2 space-y-2">
+        <div className="mt-3 space-y-3">
           <Callout>
             Updates are provider-first: the network-side mandate changes before the same values
             commit locally, and mints are blocked while the update is in flight. Send any subset
@@ -381,7 +421,7 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
         {allowance.status !== "cancelled" &&
           (confirmingCancel ? (
             <>
-              <span className="text-[11px] text-error">
+              <span className="text-xs text-error">
                 Network-side purchase instructions are cancelled with it.
               </span>
               <Button variant="destructive" small loading={cancelling} onClick={cancel}>
@@ -404,7 +444,7 @@ function AllowanceCard({ entry }: { entry: AllowanceEntry }) {
       </div>
 
       {errors && (
-        <div className="border border-ink-200 bg-ink-50 p-2 text-xs">
+        <div className="rounded-lg border border-ink-200 bg-ink-50 p-3 text-xs">
           <ProviderErrorList
             page={errors}
             emptyLabel="No provider errors recorded for this allowance."
@@ -427,12 +467,12 @@ function AllowancePicker({
   const { state } = useSession();
   if (state.allowances.length === 0) return null;
   return (
-    <label className="block text-[11px] tracking-wide text-ink-500 uppercase">
+    <label className="block text-xs font-medium tracking-wide text-ink-500 uppercase">
       Allowance
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 block w-full max-w-md border border-ink-300 bg-white px-2 py-1.5 font-mono text-xs"
+        className="mt-1.5 block w-full max-w-lg rounded-lg border border-ink-300 bg-ink-50 px-3 py-2.5 font-mono text-xs"
       >
         {state.allowances.map((entry) => (
           <option key={entry.resource.id} value={entry.resource.id}>
@@ -456,6 +496,7 @@ function VerificationSection() {
 
   return (
     <Section
+      id="verification"
       title="Verification"
       lead="Pick any allowance and run either flow variant. Compare the Manual wire timeline with the SDK's lifecycle events and typed failures in the inspector."
     >
@@ -486,6 +527,7 @@ function CredentialsSection() {
 
   return (
     <Section
+      id="credentials"
       title="Credentials"
       lead="Mint every format the rails support, replay idempotency keys on purpose, and inspect metadata. Values appear once, in the reveal card."
     >
@@ -514,16 +556,16 @@ function CredentialLookup({ allowanceId }: { allowanceId: string }) {
 
   return (
     <div>
-      <label className="mb-1 block text-[11px] tracking-wide text-ink-500 uppercase">
+      <label className="mb-1.5 block text-xs font-medium tracking-wide text-ink-500 uppercase">
         Look up a credential id on this allowance (metadata only)
       </label>
-      <div className="flex gap-1.5">
+      <div className="flex flex-wrap gap-2">
         <input
           value={credId}
           onChange={(e) => setCredId(e.target.value)}
           placeholder="cred_…"
           spellCheck={false}
-          className="min-w-0 flex-1 border border-ink-300 bg-white px-2 py-1.5 font-mono text-xs text-ink-900 focus:border-ink-900 focus:outline-none"
+          className="min-w-64 flex-1 rounded-lg border border-ink-300 bg-ink-50 px-3 py-2 font-mono text-xs text-ink-900 focus:border-accent focus:outline-none"
         />
         <Button
           variant="ghost"
@@ -553,7 +595,7 @@ function CredentialLookup({ allowanceId }: { allowanceId: string }) {
         </Button>
       </div>
       {fetchedMeta && (
-        <pre className="mt-2 max-h-48 overflow-auto border border-ink-200 bg-ink-50 p-2 font-mono text-[11px]">
+        <pre className="mt-3 max-h-64 overflow-auto rounded-lg border border-ink-200 bg-ink-50 p-3 font-mono text-xs">
           {JSON.stringify(fetchedMeta, null, 2)}
         </pre>
       )}

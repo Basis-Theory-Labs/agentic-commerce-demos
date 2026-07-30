@@ -9,9 +9,10 @@ import { AGENTIC_API_URL } from "@/lib/env";
 import { SetupScreen, useSetupState } from "@/components/SetupScreen";
 import Inspector from "@/components/Inspector";
 
-// Common chrome: header with the product name, environment chip, mode nav,
-// reset-session, plus the inspector. Renders the setup screen when keys are
-// missing so every route stays safe on a fresh checkout.
+// Common chrome: customer-portal visual language, mode navigation, environment
+// context, reset-session, and a persistent desktop inspector. Renders the
+// setup screen when keys are missing so every route stays safe on a fresh
+// checkout.
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { config, loading } = useAppConfig();
   const setup = useSetupState();
@@ -21,7 +22,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center text-sm text-ink-500">
+      <main className="flex min-h-screen items-center justify-center bg-screen text-sm text-ink-500">
         Loading configuration…
       </main>
     );
@@ -31,18 +32,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const navClass = (href: string) =>
-    `px-3 py-1.5 text-xs font-medium ${
-      pathname.startsWith(href) ? "bg-ink-900 text-white" : "text-ink-600 hover:text-ink-900"
+    `rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+      pathname.startsWith(href)
+        ? "bg-accent-soft text-accent"
+        : "text-ink-600 hover:bg-ink-50 hover:text-ink-900"
     }`;
 
   return (
-    <div className="bg-dots min-h-screen">
-      <header className="border-b border-ink-200 bg-white">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-          <Link href="/" className="font-display text-sm font-semibold text-ink-950">
-            SPM API Tester
+    <div className="min-h-screen bg-screen">
+      <header className="border-b border-ink-200 bg-screen/95 md:sticky md:top-0 md:z-50 md:backdrop-blur-xl">
+        <div className="mx-auto flex min-h-18 max-w-[1680px] flex-wrap items-center gap-x-6 gap-y-3 px-5 py-3 lg:px-8">
+          <Link href="/" className="group flex shrink-0 items-center gap-3">
+            <span
+              aria-hidden
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent font-mono text-sm font-semibold text-accent-foreground transition-transform group-hover:scale-[1.03]"
+            >
+              bt/
+            </span>
+            <span className="flex flex-col">
+              <span className="text-xs font-medium text-ink-500">Basis Theory</span>
+              <span className="font-display text-base font-semibold text-ink-950">
+                SPM API Tester
+              </span>
+            </span>
           </Link>
-          <nav aria-label="Modes" className="flex gap-1">
+          <nav
+            aria-label="Modes"
+            className="order-3 flex w-full gap-1 rounded-lg border border-ink-200 bg-surface p-1 sm:order-none sm:w-auto"
+          >
             <Link href="/flow" className={navClass("/flow")}>
               Guided Flow
             </Link>
@@ -50,36 +67,56 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               Workbench
             </Link>
           </nav>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
+            <div className="hidden min-w-0 flex-col items-end xl:flex">
+              <span className="max-w-72 truncate text-xs font-medium text-ink-700">
+                {config?.displayName}
+              </span>
+              <span className="max-w-72 truncate font-mono text-xs text-ink-500">
+                {AGENTIC_API_URL}
+              </span>
+            </div>
             <span
-              className="hidden font-mono text-[10px] text-ink-500 md:inline"
-              title="Agentic API base URL"
-            >
-              {AGENTIC_API_URL}
-            </span>
-            <span
-              className={`border px-1.5 py-0.5 text-[10px] uppercase ${
+              className={`rounded-md border px-2.5 py-1 text-xs font-medium uppercase tracking-wide ${
                 config?.tenantType === "production"
                   ? "border-warning-border bg-warning-soft text-warning"
-                  : "border-ink-300 bg-ink-50 text-ink-600"
+                  : "border-accent/30 bg-accent-soft text-accent"
               }`}
             >
               {config?.tenantType}
             </span>
             <button
+              type="button"
               onClick={() => {
                 resetSession();
                 toast.info("Session reset", "All session resources were forgotten locally.");
               }}
-              className="border border-ink-300 px-2 py-1 text-[11px] text-ink-600 hover:border-ink-900 hover:text-ink-900"
+              aria-label="Reset session"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink-300 bg-surface text-ink-600 transition-colors hover:border-accent/50 hover:text-ink-900 sm:h-auto sm:w-auto sm:px-3 sm:py-2 sm:text-xs sm:font-medium"
             >
-              Reset session
+              <svg
+                className="h-4 w-4 sm:hidden"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={1.75}
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4.5 9a7.5 7.5 0 111.88 7.25M4.5 9V4.5M4.5 9H9"
+                />
+              </svg>
+              <span className="hidden sm:inline">Reset session</span>
             </button>
           </div>
         </div>
       </header>
-      {children}
-      <Inspector />
+      <div className="mx-auto grid max-w-[1680px] xl:grid-cols-[minmax(0,1fr)_480px]">
+        <div className="min-w-0">{children}</div>
+        <Inspector />
+      </div>
     </div>
   );
 }

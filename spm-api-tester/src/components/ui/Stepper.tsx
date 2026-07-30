@@ -1,8 +1,7 @@
 "use client";
 
-// Wizard stepper: numerals with done-checks and an explicit "step n of m"
-// affordance. The current step is a solid block — deliberately distinct from
-// the underline styling in-page tabs use.
+// Wizard stepper: roomy, horizontally scrollable stages with done-checks and
+// an explicit "step n of m" affordance.
 export interface StepDef {
   id: string;
   title: string;
@@ -24,9 +23,9 @@ export function Stepper({
 }) {
   const currentIndex = steps.findIndex((s) => s.id === currentId);
   return (
-    <nav aria-label="Flow steps" className="border-b border-ink-200 bg-white">
-      <div className="flex items-center justify-between px-4">
-        <ol className="flex flex-wrap">
+    <nav aria-label="Flow steps" className="bg-surface/95">
+      <div className="flex items-center gap-4 px-5 sm:px-8">
+        <ol className="flex min-w-0 flex-1 overflow-x-auto py-2">
           {steps.map((step, index) => {
             const isCurrent = step.id === currentId;
             const isDone = doneIds.has(step.id);
@@ -38,21 +37,21 @@ export function Stepper({
                   onClick={() => isReachable && onSelect(step.id)}
                   disabled={!isReachable}
                   aria-current={isCurrent ? "step" : undefined}
-                  className={`flex items-center gap-2 px-3 py-2.5 text-xs font-medium transition-colors ${
+                  className={`flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
                     isCurrent
-                      ? "bg-ink-900 text-white"
+                      ? "bg-accent-soft text-accent"
                       : isReachable
-                        ? "text-ink-600 hover:text-ink-900"
-                        : "text-ink-300"
+                        ? "text-ink-600 hover:bg-ink-50 hover:text-ink-900"
+                        : "text-ink-400"
                   } disabled:cursor-not-allowed`}
                 >
                   <span
                     aria-hidden
-                    className={`flex h-5 w-5 items-center justify-center text-[10px] font-semibold ${
+                    className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-semibold ${
                       isCurrent
-                        ? "bg-white text-ink-900"
+                        ? "bg-accent text-accent-foreground"
                         : isDone
-                          ? "bg-success text-white"
+                          ? "bg-success-soft text-success"
                           : "border border-ink-300 text-ink-500"
                     }`}
                   >
@@ -64,7 +63,7 @@ export function Stepper({
             );
           })}
         </ol>
-        <span className="hidden shrink-0 text-[11px] text-ink-500 sm:block">
+        <span className="hidden shrink-0 text-xs text-ink-500 lg:block">
           Step {currentIndex + 1} of {steps.length}
         </span>
       </div>

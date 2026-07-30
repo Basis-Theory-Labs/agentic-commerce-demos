@@ -62,35 +62,40 @@ export function CredentialRevealCard({ credential }: { credential: Credential })
   const rows = rowsFor(credential);
 
   return (
-    <div className="border border-ink-900 bg-white">
-      <div className="flex items-center justify-between border-b border-ink-200 bg-ink-900 px-3 py-2">
-        <span className="font-mono text-xs text-white">{credential.id}</span>
-        <span className="border border-white/40 px-1.5 py-0.5 text-[10px] text-white/90 uppercase">
+    <div className="surface-shadow overflow-hidden rounded-xl border border-accent/40 bg-surface">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-accent/20 bg-accent-soft px-4 py-3.5">
+        <span className="font-mono text-sm text-accent">{credential.id}</span>
+        <span className="rounded-md border border-accent/30 bg-screen/20 px-2 py-1 text-[11px] font-semibold text-accent uppercase">
           {credential.credential.format}
         </span>
       </div>
-      <div className="space-y-2 p-3">
+      <div className="space-y-4 p-4 sm:p-5">
         <Callout tone="warning">
           This credential value is only shown once — it is not retrievable again. Copy what you
           need now.
         </Callout>
         {rows.length > 0 ? (
-          <dl className="space-y-1.5">
+          <dl className="divide-y divide-ink-200">
             {rows.map((row) => (
-              <div key={row.label} className="flex items-center justify-between gap-3">
-                <dt className="text-[11px] tracking-wide text-ink-500 uppercase">{row.label}</dt>
-                <dd className="min-w-0">
+              <div
+                key={row.label}
+                className="flex flex-col gap-2 py-2.5 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+              >
+                <dt className="text-xs font-medium tracking-wide text-ink-500 uppercase">
+                  {row.label}
+                </dt>
+                <dd className="min-w-0 sm:text-right">
                   <CopyChip value={row.value} />
                 </dd>
               </div>
             ))}
           </dl>
         ) : (
-          <pre className="max-h-48 overflow-auto border border-ink-200 bg-ink-50 p-2 font-mono text-[11px]">
+          <pre className="max-h-64 overflow-auto rounded-lg border border-ink-200 bg-ink-50 p-3 font-mono text-xs">
             {JSON.stringify(credential.credential.value, null, 2)}
           </pre>
         )}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-ink-100 pt-2 text-[11px] text-ink-500">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-ink-200 pt-3 text-xs text-ink-500">
           <span>
             {credential.amount?.value} {credential.amount?.currency}
           </span>

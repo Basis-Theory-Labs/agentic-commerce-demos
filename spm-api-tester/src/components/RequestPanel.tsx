@@ -144,25 +144,25 @@ export function RequestPanel({
   };
 
   return (
-    <div className="border border-ink-200 bg-white">
-      <div className="flex flex-wrap items-center gap-2 border-b border-ink-200 bg-ink-50 px-3 py-2">
+    <div className="surface-shadow overflow-hidden rounded-xl border border-ink-200 bg-surface">
+      <div className="flex flex-wrap items-center gap-2.5 border-b border-ink-200 bg-ink-50 px-4 py-3">
         <span
-          className={`px-1.5 py-0.5 font-mono text-[10px] font-semibold ${
+          className={`rounded-md px-2 py-1 font-mono text-[11px] font-semibold ${
             method === "GET"
               ? "bg-ink-200 text-ink-800"
               : method === "DELETE"
-                ? "bg-error text-white"
-                : "bg-ink-900 text-white"
+                ? "bg-error-solid text-white"
+                : "bg-accent text-accent-foreground"
           }`}
         >
           {method}
         </span>
-        <span className="min-w-0 flex-1 font-mono text-xs break-all text-ink-900">{path}</span>
+        <span className="min-w-0 flex-1 font-mono text-sm break-all text-ink-900">{path}</span>
         <span
-          className={`border px-1.5 py-0.5 text-[10px] uppercase ${
+          className={`rounded-md border px-2 py-1 text-[11px] font-medium uppercase tracking-wide ${
             auth === "public"
-              ? "border-ink-300 bg-white text-ink-600"
-              : "border-ink-900 bg-ink-900 text-white"
+              ? "border-ink-300 bg-surface text-ink-600"
+              : "border-accent/30 bg-accent-soft text-accent"
           }`}
           title={
             auth === "public"
@@ -174,18 +174,18 @@ export function RequestPanel({
         </span>
       </div>
 
-      <div className="space-y-2.5 p-3">
+      <div className="space-y-4 p-4 sm:p-5">
         {idempotency && (
           <div>
-            <label className="mb-1 block text-[11px] tracking-wide text-ink-500 uppercase">
+            <label className="mb-1.5 block text-xs font-medium tracking-wide text-ink-500 uppercase">
               BT-IDEMPOTENCY-KEY
             </label>
-            <div className="flex gap-1.5">
+            <div className="flex flex-wrap gap-2">
               <input
                 value={idemKey}
                 onChange={(e) => setIdemKey(e.target.value)}
                 spellCheck={false}
-                className="min-w-0 flex-1 border border-ink-300 bg-white px-2 py-1.5 font-mono text-xs text-ink-900 focus:border-ink-900 focus:outline-none"
+                className="min-w-64 flex-1 rounded-lg border border-ink-300 bg-ink-50 px-3 py-2 font-mono text-xs text-ink-900 focus:border-accent focus:outline-none"
               />
               <Button variant="ghost" small onClick={() => setIdemKey(crypto.randomUUID())}>
                 Regenerate
@@ -201,7 +201,7 @@ export function RequestPanel({
                 </Button>
               )}
             </div>
-            <p className="mt-1 text-[11px] text-ink-500">
+            <p className="mt-2 max-w-3xl text-xs leading-relaxed text-ink-500">
               A fresh key is generated after each successful send.{" "}
               {idempotencyNote ??
                 "Use Replay last key to resend with the previous key on purpose — same body replays, edited body 409s with IDEMPOTENCY_CONFLICT."}
@@ -215,7 +215,7 @@ export function RequestPanel({
 
         {children}
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 pt-1">
           <Button onClick={send} loading={sending} loadingLabel={loadingLabel} disabled={disabled}>
             {sendLabel}
           </Button>
@@ -224,12 +224,12 @@ export function RequestPanel({
         {problem && (
           <div
             role="alert"
-            className="space-y-1 border border-error-border bg-error-soft px-2.5 py-2 text-xs"
+            className="space-y-1 rounded-lg border border-error-border bg-error-soft px-3 py-2.5 text-xs"
           >
             <div className="font-medium text-error">{problem.title ?? "Request failed"}</div>
             {problem.detail && <div className="text-ink-700">{problem.detail}</div>}
             {problem.instance && (
-              <div className="font-mono text-[10px] break-all text-ink-500">
+              <div className="font-mono text-[11px] break-all text-ink-500">
                 {problem.instance}
               </div>
             )}
@@ -239,7 +239,7 @@ export function RequestPanel({
                   <span className="font-mono">{field}</span>: {messages.join("; ")}
                 </div>
               ))}
-            <div className="flex flex-wrap gap-2 font-mono text-[10px] text-ink-500">
+            <div className="flex flex-wrap gap-2 font-mono text-[11px] text-ink-500">
               {problem.status !== undefined && <span>HTTP {problem.status}</span>}
               {problem.type && <span>{problem.type}</span>}
               {problem.debug?.provider_correlation && (
