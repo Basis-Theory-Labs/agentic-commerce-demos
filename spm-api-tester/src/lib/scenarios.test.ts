@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CARD_SCENARIOS, findScenario, NOT_SIMULATABLE, scenariosAt } from "./scenarios";
 
@@ -66,6 +68,21 @@ describe("scenario catalog integrity", () => {
       scenariosAt("verify").length +
       scenariosAt("credentials").length;
     expect(total).toBe(CARD_SCENARIOS.length);
+  });
+
+  it("README's scenario table stays in sync with the catalog", () => {
+    // The catalog is the single source of truth; this stops the README from
+    // drifting the way the old app's did.
+    const readme = readFileSync(join(__dirname, "..", "..", "README.md"), "utf-8");
+    for (const scenario of CARD_SCENARIOS) {
+      const spaced = scenario.pan.replace(/(\d{4})/g, "$1 ").trim();
+      expect(readme, `README is missing ${spaced}`).toContain(spaced);
+      if (scenario.expectedErrorType) {
+        expect(readme, `README is missing ${scenario.expectedErrorType}`).toContain(
+          scenario.expectedErrorType,
+        );
+      }
+    }
   });
 
   it("keeps the honesty list non-empty and covering the known gaps", () => {
