@@ -3,7 +3,7 @@
 // the inspector hook). A unit test keeps the two aligned — if you change one,
 // change both.
 
-import { AgenticVerification } from "@basis-theory/agentic-verification";
+import { AgenticVerification } from "@basis-theory/web-agentic";
 import { AGENTIC_API_URL, PUBLIC_KEY } from "@/lib/env";
 
 export function createVerifier(options: {
@@ -18,7 +18,7 @@ export function createVerifier(options: {
   });
 }
 
-export const SDK_INTEGRATION_SNIPPET = `import { AgenticVerification } from '@basis-theory/agentic-verification';
+export const SDK_INTEGRATION_SNIPPET = `import { AgenticVerification } from '@basis-theory/web-agentic';
 
 const av = AgenticVerification({
   apiKey: NEXT_PUBLIC_BT_API_KEY,          // public key: agentic:allowance:verify + :get

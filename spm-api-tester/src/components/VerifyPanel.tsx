@@ -8,7 +8,7 @@
 //            the Mastercard popup + origin-checked bridge + bounded complete
 //            poll run exactly as a production integration would.
 //   SDK    — the same allowance verified with one
-//            @basis-theory/agentic-verification call.
+//            @basis-theory/web-agentic call.
 //
 // Verify calls are serialized per allowance (concurrent actions 409 with
 // ALLOWANCE_VERIFICATION_IN_PROGRESS — they don't queue).

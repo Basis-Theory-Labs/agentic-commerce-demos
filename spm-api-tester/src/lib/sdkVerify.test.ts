@@ -17,6 +17,6 @@ describe("SDK integration", () => {
     expect(SDK_INTEGRATION_SNIPPET).toContain("AgenticVerification({");
     expect(SDK_INTEGRATION_SNIPPET).toContain("verifyAllowance(allowanceId)");
     expect(SDK_INTEGRATION_SNIPPET).toContain(AGENTIC_API_URL);
-    expect(SDK_INTEGRATION_SNIPPET).toContain("@basis-theory/agentic-verification");
+    expect(SDK_INTEGRATION_SNIPPET).toContain("@basis-theory/web-agentic");
   });
 });

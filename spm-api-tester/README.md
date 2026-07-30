@@ -9,7 +9,7 @@ card token → payment method → allowance → verification → credentials
 
 Every wire call is visible and copyable, and every write is editable. Two modes (a guided
 five-step flow and a freeform workbench), two verification variants (raw API
-or the `@basis-theory/agentic-verification` SDK), and full coverage of the
+or the `@basis-theory/web-agentic` SDK), and full coverage of the
 mock test-card scenarios.
 
 ## Architecture

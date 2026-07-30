@@ -55,7 +55,7 @@ function Landing() {
         <p className="mt-1 mb-3 text-xs text-ink-600">
           Run verification step by step against the raw API, or collapse it into the one call a
           customer would ship with{" "}
-          <code className="bg-ink-100 px-1">@basis-theory/agentic-verification</code>. Both
+          <code className="bg-ink-100 px-1">@basis-theory/web-agentic</code>. Both
           variants work on the same allowances — verify one each way and compare the transcripts
           in the inspector.
         </p>

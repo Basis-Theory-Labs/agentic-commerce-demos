@@ -1,7 +1,7 @@
 "use client";
 
 // The verification flow variant: Manual (raw API, editable requests) or SDK
-// (@basis-theory/agentic-verification). Persisted in localStorage so the
+// (@basis-theory/web-agentic). Persisted in localStorage so the
 // choice follows the user across pages; exposed via useSyncExternalStore so
 // SSR renders the default and the client subscribes to changes.
 
